@@ -46,7 +46,7 @@ $ exec "$SHELL"
 
 ### Install proper python versions
 ```
-$ pyenv install 2.7.15
+$ pyenv install 2.7.15 # WSL only
 $ pyenv install 3.8.5
 ```
 
