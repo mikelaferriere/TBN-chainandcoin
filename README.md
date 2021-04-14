@@ -52,3 +52,13 @@ $ pyenv install 3.8.5
 
 The `.python-version` file will make sure that, when inside this repo, you are using 2.7.15
 for `python` and 3.8.5 for `python3` as long as you have configured everything laid out above.
+
+
+# Install pre-commit hooks
+
+Installing the pre-commit hooks will run a series of linters and run the tests so that the changes are
+tested nicely before they get either to `master` or in a PR.
+
+```
+make install-pre-commit
+```
