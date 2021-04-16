@@ -9,7 +9,7 @@ pip:
 	python3 -m pip install -r requirements.txt
 
 run:
-	python blockchain_api.py
+	python blockchain_node.py
 
 .PHONY: \
 	help
