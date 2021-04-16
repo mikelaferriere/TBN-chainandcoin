@@ -1,27 +1,30 @@
-import hashlib
-import json
-import requests
 from time import time
 from urllib.parse import urlparse
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Union
+
+import hashlib
+import json
+import requests
 
 Block = Dict
+Transaction = Dict[str, Union[str, int]]
+
 
 class Blockchain:
     """
     The blockchain
     """
-    
+
     def __init__(self) -> None:
-        self.chain = []
-        self.current_transactions = []
-        self.nodes = set()
+        self.chain = []  # type: List[Block]
+        self.current_transactions = []  # type: List[Transaction]
+        self.nodes = set()  # type: Set[Any]
 
         # Create the 'genesis' block. This is the inital block.
-        self.new_block(previous_hash=1, proof=100)
+        self.new_block(previous_hash="1", proof=100)
 
-    def new_block(self, proof: int, previous_hash: Optional[hash] = None) -> Block:
+    def new_block(self, proof: int, previous_hash: Optional[str] = None) -> Block:
         """
         Create a new Block in the Blockchain
         :param proof: <int> The proof given by the Proof of Work algorithm
@@ -30,11 +33,11 @@ class Blockchain:
         """
 
         block = {
-            'index': len(self.chain) + 1,
-            'timestamp': time(),
-            'transactions': self.current_transactions,
-            'proof': proof,
-            'previous_hash': previous_hash or self.hash(self.chain[-1]),
+            "index": len(self.chain) + 1,
+            "timestamp": time(),
+            "transactions": self.current_transactions,
+            "proof": proof,
+            "previous_hash": previous_hash or self.hash(self.chain[-1]),
         }
 
         # Reset the current list of transactions
@@ -52,13 +55,11 @@ class Blockchain:
         :return: <int> The index of the Block that will hold this transaction
         """
 
-        self.current_transactions.append({
-            'sender': sender,
-            'recipient': recipient,
-            'amount': amount,
-        })
+        self.current_transactions.append(
+            {"sender": sender, "recipient": recipient, "amount": amount,}
+        )
 
-        return self.last_block['index'] + 1
+        return self.last_block["index"] + 1
 
     @staticmethod
     def hash(block: Block) -> str:
@@ -77,7 +78,6 @@ class Blockchain:
         # Returns the last block in the chain
         return self.chain[-1]
 
-    
     def proof_of_work(self, last_proof: int) -> int:
         """
         Simple Proof of Work Algorithm
@@ -103,7 +103,7 @@ class Blockchain:
         :return: <bool> True if correct, False if not
         """
 
-        guess = f'{last_proof}{proof}'.encode()
+        guess = f"{last_proof}{proof}".encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:4] == "0000"
 
@@ -129,16 +129,16 @@ class Blockchain:
 
         while current_index < len(chain):
             block = chain[current_index]
-            print(f'{last_block}')
-            print(f'{block}')
+            print(f"{last_block}")
+            print(f"{block}")
             print("\n------------\n")
 
             # Check that the hash of the block is correct
-            if block['previous_hash'] != self.hash(last_block):
+            if block["previous_hash"] != self.hash(last_block):
                 return False
 
             # Check that the PoW is correct
-            if not self.valid_proof(last_block['proof'], block['proof']):
+            if not self.valid_proof(last_block["proof"], block["proof"]):
                 return False
 
             last_block = block
@@ -162,11 +162,11 @@ class Blockchain:
 
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
-            response = requests.get(f'http://{node}/chain')
+            response = requests.get(f"http://{node}/chain")
 
             if response.ok:
-                length = response.json()['length']
-                chain = response.json()['chain']
+                length = response.json()["length"]
+                chain = response.json()["chain"]
 
                 # Check if the length is longer and the chain is valid
                 if length > max_length and self.valid_chain(chain):
