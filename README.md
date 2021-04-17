@@ -1,5 +1,5 @@
-# dSSN
-Ambitious digital identification system
+# Blockchain
+We dont have a name for our blockchain or coin yet.
 
 
 # Linux
