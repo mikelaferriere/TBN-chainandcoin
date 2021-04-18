@@ -1,9 +1,8 @@
-from datetime import datetime
 from time import time
 from urllib.parse import urlparse
+from uuid import uuid4
 
-from pydantic import BaseModel
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set
 
 import hashlib
 import json
@@ -12,16 +11,19 @@ import requests
 from block import Block
 from transaction import Transaction
 
-    
+
 class Blockchain:
     """
     The blockchain
     """
 
-    def __init__(self) -> None:
+    def __init__(self, difficulty: int = 4) -> None:
+        # Generate a globally unique UUID for this node
+        self.chain_identifier = str(uuid4()).replace("-", "")
         self.chain = []  # type: List[Block]
         self.current_transactions = []  # type: List[Transaction]
         self.nodes = set()  # type: Set[Any]
+        self.difficulty = difficulty
 
         # Create the 'genesis' block. This is the inital block.
         if not self.chain:
@@ -44,7 +46,7 @@ class Blockchain:
         """
 
         # We must make sure that the Dictionary is Ordered, or we'll have inconsistent hashes
-        block_string = json.dumps(block.dict(), sort_keys=True).encode()
+        block_string = json.dumps(block.to_ordered_dict(), sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
 
     @property
@@ -65,11 +67,11 @@ class Blockchain:
         """
 
         block = Block(
-            index = len(self.chain) + 1,
-            timestamp = time(),
-            transactions = self.current_transactions,
-            proof = proof,
-            previous_hash = previous_hash or self.calculate_hash(self.last_block),
+            index=len(self.chain) + 1,
+            timestamp=time(),
+            transactions=self.current_transactions,
+            proof=proof,
+            previous_hash=previous_hash or self.calculate_hash(self.last_block),
         )
 
         # Reset the current list of transactions
@@ -78,26 +80,30 @@ class Blockchain:
         self.chain.append(block)
         return block
 
-    def __broadcast_new_transaction(self, transaction: Transaction, is_receiving: bool) -> None:
-        """
-        
-        """
+    def __broadcast_new_transaction(
+        self, transaction: Transaction, is_receiving: bool
+    ) -> None:
         for node in self.nodes:
             if not is_receiving:
-                url = 'http://{}/broadcast-transaction'.format(node)
+                url = "http://{}/broadcast-transaction".format(node)
                 try:
-                    response = requests.post(url, json={
-                        'sender': transaction.sender,
-                        'recipient': transaction.recipient,
-                        'amount': transaction.amount,
-                        'signature': transaction.signature
-                    })
+                    response = requests.post(
+                        url,
+                        json={
+                            "sender": transaction.sender,
+                            "recipient": transaction.recipient,
+                            "amount": transaction.amount,
+                            "signature": transaction.signature,
+                        },
+                    )
                     if response.status_code == 400 or response.status_code == 500:
-                        print('Transaction declined, needs resolving')
+                        print("Transaction declined, needs resolving")
                 except requests.exceptions.ConnectionError:
                     continue
 
-    def new_transaction(self, transaction: Transaction, is_receiving: bool = False) -> int:
+    def new_transaction(
+        self, transaction: Transaction, is_receiving: bool = False
+    ) -> int:
         """
         Creates a new transaction to go into the next mined Block
         :param transaction: <Transaction> A single Transaction
@@ -108,7 +114,7 @@ class Blockchain:
 
         self.current_transactions.append(transaction)
         self.__broadcast_new_transaction(transaction, is_receiving)
-        
+
         return self.last_block.index + 1
 
     @staticmethod
@@ -120,10 +126,10 @@ class Blockchain:
         :return: <bool> True if correct, False if not
         """
 
-        str_block = json.dumps(block.dict())
+        str_block = json.dumps(block.to_ordered_dict())
         guess = f"{str_block}-{proof}".encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:difficulty] == "0"*difficulty
+        return guess_hash[:difficulty] == "0" * difficulty
 
     def proof_of_work(self, last_block: Block, difficulty: Optional[int]) -> int:
         """
@@ -136,7 +142,7 @@ class Blockchain:
         :return: <int>
         """
 
-        difficulty = difficulty if difficulty is not None else 4
+        difficulty = difficulty if difficulty is not None else self.difficulty
 
         proof = 0
         while self.valid_proof(proof, last_block, difficulty) is False:
@@ -146,14 +152,16 @@ class Blockchain:
 
     def __broadcast_new_block(self, block: Block) -> None:
         for node in self.nodes:
-            url = 'http://{}/broadcast-block'.format(node)
+            url = "http://{}/broadcast-block".format(node)
             try:
-                response = requests.post(url, json={'block': json.dumps(block.dict())})
+                response = requests.post(
+                    url, json={"block": json.dumps(block.to_ordered_dict())}
+                )
                 if response.status_code == 400 or response.status_code == 500:
-                    print('Block declined, needs resolving')
+                    print("Block declined, needs resolving")
             except requests.exceptions.ConnectionError:
                 continue
-        
+
     def mine(self, miner_address: str, difficulty: Optional[int] = None) -> None:
         # We run the PoW algorithm to get the next proof
         last_block = self.last_block
@@ -195,11 +203,11 @@ class Blockchain:
             print("\n------------\n")
 
             # Check that the hash of the block is correct
-            if block["previous_hash"] != self.calculate_hash(last_block):
+            if block.previous_hash != self.calculate_hash(last_block):
                 return False
 
             # Check that the PoW is correct
-            if not self.valid_proof(last_block["proof"], block["proof"]):
+            if not self.valid_proof(block.proof, block, self.difficulty):
                 return False
 
             last_block = block
