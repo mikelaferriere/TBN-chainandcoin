@@ -22,10 +22,18 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: Check formatting with black
+      run: |
+        # stop the build if there are formatting errors
+        black .
     - name: Lint with pylint
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        pylint .
+        # stop the build if there are Python lint errors
+        pylint *.py
+    - name: Check types with mypy
+      run: |
+        # stop the build if there are type errors
+        mypy *.py
     - name: Test with pytest
       run: |
         pytest
