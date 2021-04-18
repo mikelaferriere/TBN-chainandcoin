@@ -62,3 +62,6 @@ tested nicely before they get either to `master` or in a PR.
 ```
 make install-pre-commit
 ```
+
+# Running the blockchain!
+To run and interact with the blockchain, see **BLOCKCHAIN.md**
