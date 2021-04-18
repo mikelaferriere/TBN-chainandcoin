@@ -56,11 +56,11 @@ the transaction. So lets mine the block onto the chain!
 ## Mining
 
 Mining is the act of adding a block to the blockchain. It will always create a new block with
-a sender "0", and the recipient is the UUID of the node. The amount is currently 1 coin. Any
+a sender "0", and the recipient is the miners address. The amount is currently 1 coin. Any
 pending transactions are also committed to the chain in the Block
 
 ```
-$ curl localhost:5000/mine | jq .
+$ curl -XPOST -H "Content-Type: application/json" localhost:5000/mine -d '{"miner_address": "SomeAddress"}' | jq .
 ```
 
 If you mine when there is no pending transactions, you can expect a response like:
@@ -73,7 +73,7 @@ If you mine when there is no pending transactions, you can expect a response lik
   "transactions": [
     {
       "amount": 1,
-      "recipient": "322e032121e145b5a2c6934813f1c106",
+      "recipient": "SomeAddress",
       "sender": "0"
     }
   ]
@@ -115,7 +115,7 @@ a node running on port 5000, and a node running on port 5001.
 Lets add the node on port 5001, to the node on port 5000.
 
 ```
-curl -XPOST -H "Content-Type: application/json localhost:5000/nodes/register -d '{"nodes": ["http://localhost:5001"]}' | jq .
+curl -XPOST -H "Content-Type: application/json" localhost:5000/nodes/register -d '{"nodes": ["http://localhost:5001"]}' | jq .
 ```
 You will see that the node has been added:
 ```
@@ -135,7 +135,7 @@ When running the consensus, the node with the longest chain will win and be the 
 **NOTE: This part I'm not quite sure about when it should run? Maybe before each transaction? Or mine?**
 
 ```
-
+curl localhost:5000/nodes/resolve | jq .
 ```
 
 Responding with:
