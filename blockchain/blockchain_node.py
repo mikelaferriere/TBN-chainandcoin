@@ -1,8 +1,12 @@
+import os
+import json
 from uuid import uuid4
 
 from flask import Flask, jsonify, request
 
-from blockchain.blockchain import Blockchain
+from block import date_of_string, Block
+from blockchain import Blockchain
+from transaction import Transaction
 
 
 # Instantiate the node
@@ -17,25 +21,11 @@ blockchain = Blockchain()
 
 @app.route("/mine", methods=["GET"])
 def mine():
-    # We run the PoW algorithm to get the next proof
-    last_block = blockchain.last_block
-    last_proof = last_block["proof"]
-    proof = blockchain.proof_of_work(last_proof)
-
-    # We must receive a reward for finding the proof
-    # The sender is "0" to signify that this node has minded a new coin.
-    blockchain.new_transaction(sender="0", recipient=node_identifier, amount=1)
-
-    # Forge the new Block by adding it to the chain
-    previous_hash = blockchain.hash(last_block)
-    block = blockchain.new_block(proof, previous_hash)
+    blockchain.mine(node_identifier)
 
     response = {
         "message": "New Block Forged",
-        "index": block["index"],
-        "transactions": block["transactions"],
-        "proof": block["proof"],
-        "previous_hash": block["previous_hash"],
+        "block": blockchain.last_block.dict(),
     }
 
     return jsonify(response), 200
@@ -51,17 +41,24 @@ def new_transaction():
         return "Missing values", 400
 
     # Create a new Transaction
-    index = blockchain.new_transaction(
-        values["sender"], values["recipient"], values["amount"]
+    index = blockchain.new_transaction(Transaction(
+        sender=values["sender"], recipient=values["recipient"], amount=values["amount"])
     )
 
     response = {"message": f"Transaction will be added to Block {index}"}
     return jsonify(response), 201
 
 
+@app.route("/transactions/pending", methods=["GET"])
+def pending_transaction():
+    # Get pending Transactions
+    pending = [p.dict() for p in blockchain.pending_transactions]
+    return jsonify(pending), 201
+
+
 @app.route("/chain", methods=["GET"])
 def full_chain():
-    response = {"chain": blockchain.chain, "length": len(blockchain.chain)}
+    response = {"chain": blockchain.pretty_chain(), "length": len(blockchain.chain)}
     return jsonify(response), 200
 
 
@@ -99,5 +96,65 @@ def consensus():
     return jsonify(response), 200
 
 
+# POST - Broadcast Mined Block Information to Peer Nodes
+@app.route('/broadcast-block', methods=['POST'])
+def broadcast_block():
+    values = request.get_json()
+    if not values:
+        response = {'message': 'No data found.'}
+        return jsonify(response), 400
+    if 'block' not in values:
+        response = {'message': 'Some data is missing.'}
+        return jsonify(response), 400
+    block = json.loads(values['block'])
+    if block['index'] == blockchain.last_block.index + 1:
+        if blockchain.new_block(int(block['proof']), block['previous_hash']):
+            response = {'message': 'Block added'}
+            return jsonify(response), 201
+        else:
+            response = {'message': 'Block seems invalid.'}
+            return jsonify(response), 500
+    elif block['index'] > blockchain.chain[-1].index:
+        pass
+    else: 
+        response = {'message': 'Blockchain seems to be shorter, block not added'}
+        return jsonify(response), 409
+
+
+# POST - Broadcast Transaction Information to Peer Nodes
+@app.route('/broadcast-transaction', methods=['POST'])
+def broadcast_transaction():
+    values = request.get_json()
+    if not values:
+        response = {'message': 'No data found.'}
+        return jsonify(response), 400
+    required = ['sender', 'recipient', 'amount']
+    if not all(key in values for key in required):
+        response = {'message': 'Some data is missing.'}
+        return jsonify(response), 400
+    success = blockchain.new_transaction(
+        Transaction(
+            sender=values['sender'],
+            recipient=values['recipient'],
+            amount=values['amount']
+        ),
+        is_receiving=True
+    )
+    if success:
+        response = {
+            'message': 'Successfully added transaction.',
+            'transaction': {
+                'sender': values['sender'],
+                'recipient': values['recipient'],
+                'amount': values['amount'],
+            }
+        }
+        return jsonify(response), 201
+    else:
+        response = {
+            'message': 'Creating a transaction failed.'
+        }
+        return jsonify(response), 500
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))

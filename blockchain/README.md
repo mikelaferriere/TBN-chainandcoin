@@ -115,7 +115,7 @@ a node running on port 5000, and a node running on port 5001.
 Lets add the node on port 5001, to the node on port 5000.
 
 ```
-curl -XPOST -H "Content-Type: application/json localhost:5000/nodes/register -d '{"nodes": ["http://localhost:5001"]}' | jq .
+curl -XPOST -H "Content-Type: application/json" localhost:5000/nodes/register -d '{"nodes": ["http://localhost:5001"]}' | jq .
 ```
 You will see that the node has been added:
 ```
@@ -135,7 +135,7 @@ When running the consensus, the node with the longest chain will win and be the 
 **NOTE: This part I'm not quite sure about when it should run? Maybe before each transaction? Or mine?**
 
 ```
-
+curl localhost:5000/nodes/resolve | jq .
 ```
 
 Responding with:
