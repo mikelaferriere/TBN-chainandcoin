@@ -34,8 +34,8 @@ class Block(BaseModel):
 
 
 def date_of_string(date: str) -> datetime:
-    return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f%z")
+    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
 
 
 def date_to_string(date: datetime) -> str:
-    return datetime.strftime(date, "%Y-%m-%d %H:%M:%S.%f%z")
+    return datetime.strftime(date, "%Y-%m-%dT%H:%M:%S.%f%z")

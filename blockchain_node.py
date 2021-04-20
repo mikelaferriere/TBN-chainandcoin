@@ -1,17 +1,23 @@
 import os
 import json
 
+from uuid import uuid4
 from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
 from transaction import Transaction
+from wallet import Wallet
 
 
 # Instantiate the node
 app = Flask(__name__)
+node_id = uuid4()
+
+w = Wallet(node_id)
+public_key, _ = w.generate_keys()
 
 # Instantiate the Blockchain
-blockchain = Blockchain()
+blockchain = Blockchain(public_key, node_id)
 
 
 @app.route("/mine", methods=["POST"])
@@ -43,7 +49,7 @@ def new_transaction():
         return "Missing values", 400
 
     # Create a new Transaction
-    index = blockchain.new_transaction(
+    index = blockchain.add_transaction(
         Transaction(
             sender=values["sender"],
             recipient=values["recipient"],
@@ -58,7 +64,7 @@ def new_transaction():
 @app.route("/transactions/pending", methods=["GET"])
 def pending_transaction():
     # Get pending Transactions
-    pending = [p.dict() for p in blockchain.pending_transactions]
+    pending = [p.dict() for p in blockchain.get_open_transactions]
     return jsonify(pending), 201
 
 
@@ -114,7 +120,7 @@ def broadcast_block():
         return jsonify(response), 400
     block = json.loads(values["block"])
     if block["index"] == blockchain.last_block.index + 1:
-        if blockchain.new_block(int(block["proof"]), block["previous_hash"]):
+        if blockchain.add_block(block):
             response = {"message": "Block added"}
             return jsonify(response), 201
         response = {"message": "Block seems invalid."}
@@ -139,7 +145,7 @@ def broadcast_transaction():
     if not all(key in values for key in required):
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
-    success = blockchain.new_transaction(
+    success = blockchain.add_transaction(
         Transaction(
             sender=values["sender"],
             recipient=values["recipient"],
