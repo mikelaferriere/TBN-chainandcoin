@@ -85,5 +85,5 @@ class Verification:
         cls, open_transactions: List[Transaction], get_balance: Callable
     ):
         return all(
-            [cls.verify_transaction(tx, get_balance, False) for tx in open_transactions]
+            cls.verify_transaction(tx, get_balance, False) for tx in open_transactions
         )

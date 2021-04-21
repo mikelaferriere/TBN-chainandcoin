@@ -39,7 +39,11 @@ class Blockchain:
 
         # Create the 'genesis' block. This is the inital block.
         genesis_block = Block(
-            index=0, timestamp=0, transactions=[], proof=100, previous_hash="",
+            index=0,
+            timestamp=0,
+            transactions=[],
+            proof=100,
+            previous_hash="",
         )
 
         self.chain = [genesis_block]

@@ -26,10 +26,14 @@ jobs:
       run: |
         # stop the build if there are formatting errors
         black .
+    - name: Check formatting with flake8
+      run: |
+        # stop the build if there are formatting errors
+        flake8 . --config=setup.cfg
     - name: Lint with pylint
       run: |
         # stop the build if there are Python lint errors
-        pylint *.py
+        pylint *.py --rcfile=pylintrc
     - name: Check types with mypy
       run: |
         # stop the build if there are type errors

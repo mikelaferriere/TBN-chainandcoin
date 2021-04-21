@@ -7,27 +7,27 @@ repos:
       - id: debug-statements
         stages: [push]
   - repo: https://github.com/psf/black
-    rev: "19.10b0"
+    rev: "20.8b1"
     hooks:
       - id: black
         language_version: python3
         stages: [commit]
   - repo: https://gitlab.com/pycqa/flake8
-    rev: "3.7.9"
+    rev: "3.9.1"
     hooks:
       - id: flake8
         args:
           - "--config=setup.cfg"
         stages: [commit]
   - repo: https://github.com/pre-commit/mirrors-pylint
-    rev: "v2.4.4"
+    rev: "v2.7.4"
     hooks:
       - id: pylint
         args:
           - "--rcfile=pylintrc"
         stages: [commit]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v0.770"
+    rev: "v0.812"
     hooks:
       - id: mypy
         name: mypy
