@@ -14,7 +14,7 @@ $ sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev 
 Setting up direnv will allow the python deps to be configured when entering
 and exiting specific folders in the repo.
 
-Add 
+Add
 ```
 eval "$(direnv hook bash)"
 ```

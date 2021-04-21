@@ -2,7 +2,7 @@
 
 This initial implementation is a pretty simple straightforward representation of a blockchain.
 It uses Proof of Work (PoW), which means that it can be mined and uses machine power to validate
-and create the chain. We may want to later use Proof of Stake (PoS) which should reduce 
+and create the chain. We may want to later use Proof of Stake (PoS) which should reduce
 transaction fees, but requires people to believe in the product before any it produces any value.
 
 
@@ -26,7 +26,7 @@ change down the line, but it is more than enough to go on for the initial protot
 There are a few things to do with the chain once the node is running. By running `make run`,
 the api will be running on `http://localhost:5000`
 
-**NOTE: I pipe the curl command to `jq` in order to format the output into something human 
+**NOTE: I pipe the curl command to `jq` in order to format the output into something human
 readable**
 
 
