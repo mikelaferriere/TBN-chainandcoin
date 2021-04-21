@@ -86,4 +86,6 @@ class Wallet:
                 + str(transaction.amount)
             ).encode("utf8")
         )
-        return verifier.verify(h, binascii.unhexlify(transaction.signature))
+        return verifier.verify(  # pylint: disable=not-callable
+            h, binascii.unhexlify(transaction.signature)
+        )
