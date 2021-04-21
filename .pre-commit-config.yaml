@@ -5,27 +5,31 @@ repos:
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
+      - id: detect-private-key
+      - id: detect-aws-credentials
+      - id: check-ast
+      - id: trailing-whitespace
         stages: [push]
   - repo: https://github.com/psf/black
     rev: "20.8b1"
     hooks:
       - id: black
         language_version: python3
-        stages: [commit]
+        stages: [push]
   - repo: https://gitlab.com/pycqa/flake8
     rev: "3.9.1"
     hooks:
       - id: flake8
         args:
           - "--config=setup.cfg"
-        stages: [commit]
-  - repo: https://github.com/pre-commit/mirrors-pylint
-    rev: "v2.7.4"
+        stages: [push]
+  - repo: https://github.com/PyCQA/pylint
+    rev: "pylint-2.7.4"
     hooks:
       - id: pylint
         args:
           - "--rcfile=pylintrc"
-        stages: [commit]
+        stages: [push]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v0.812"
     hooks:
@@ -34,7 +38,7 @@ repos:
         types: [file, python]
         additional_dependencies:
           - pydantic==1.4
-        stages: [commit]
+        stages: [push]
   - repo: local
     hooks:
       - id: pytest
@@ -42,5 +46,5 @@ repos:
         entry: pytest
         pass_filenames: false
         language: system
-        stages: [commit]
+        stages: [push]
         types: [file, python]
