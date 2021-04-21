@@ -39,7 +39,6 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        types: [file, python]
         additional_dependencies:
           - pydantic==1.4
         stages: [push]

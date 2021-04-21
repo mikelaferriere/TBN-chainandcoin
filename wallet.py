@@ -6,7 +6,7 @@ from typing import Tuple
 
 import Crypto.Random
 from Crypto.PublicKey import RSA
-from Crypto.Signature import PKCS1_v1_5
+from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 
 from transaction import Transaction
@@ -69,7 +69,7 @@ class Wallet:
     # RSA is a cryptography algorithm
     # binascii.hexlify is used to convert binary data to hexadecimal representation
     def sign_transaction(self, sender: str, recipient: str, amount: float) -> str:
-        signer = PKCS1_v1_5.new(RSA.importKey(binascii.unhexlify(self.private_key)))
+        signer = pkcs1_15.new(RSA.importKey(binascii.unhexlify(self.private_key)))
         h = SHA256.new((str(sender) + str(recipient) + str(amount)).encode("utf8"))
         signature = signer.sign(h)
         return binascii.hexlify(signature).decode("ascii")
@@ -78,7 +78,7 @@ class Wallet:
     @staticmethod
     def verify_transaction(transaction: Transaction) -> bool:
         public_key = RSA.importKey(binascii.unhexlify(transaction.sender))
-        verifier = PKCS1_v1_5.new(public_key)
+        verifier = pkcs1_15.new(public_key)
         h = SHA256.new(
             (
                 str(transaction.sender)
@@ -86,6 +86,9 @@ class Wallet:
                 + str(transaction.amount)
             ).encode("utf8")
         )
-        return verifier.verify(  # pylint: disable=not-callable
-            h, binascii.unhexlify(transaction.signature)
-        )
+        try:
+            verifier.verify(h, binascii.unhexlify(transaction.signature))
+            return True
+        except (ValueError, TypeError) as e:
+            print(e)
+            return False
