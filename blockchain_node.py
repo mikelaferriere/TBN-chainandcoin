@@ -1,3 +1,4 @@
+import getpass
 import os
 import json
 
@@ -6,18 +7,17 @@ from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
 from transaction import Transaction
-from wallet import Wallet
+from walletv2 import Wallet
 
 
 # Instantiate the node
 app = Flask(__name__)
 node_id = uuid4()
 
-w = Wallet(node_id)
-public_key, _ = w.generate_keys()
+w = Wallet()
 
 # Instantiate the Blockchain
-blockchain = Blockchain(public_key, node_id)
+blockchain = None
 
 
 @app.route("/mine", methods=["POST"])
@@ -168,4 +168,16 @@ def broadcast_transaction():
 
 
 if __name__ == "__main__":
+    password = getpass.getpass()
+    result = w.login(password)
+    if not result:
+        raise ValueError("Unable to configure wallet for blockchain integration")
+
+    if not w.address:
+        raise ValueError(
+            "Must configure a wallet address in order to interact with the blockchain"
+        )
+    blockchain = Blockchain(w.address, node_id)
+    if not blockchain:
+        raise ValueError("Unabled to initialize blockchain")
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))

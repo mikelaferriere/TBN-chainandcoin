@@ -5,7 +5,7 @@ from typing import Callable, List
 
 from block import Block
 from transaction import Transaction
-from wallet import Wallet
+from walletv2 import Wallet
 
 
 def hash_bytes_256(block_string: bytes) -> str:

@@ -12,7 +12,7 @@ import requests
 from block import Block
 from transaction import Transaction
 from verification import Verification
-from wallet import Wallet
+from walletv2 import Wallet
 
 
 MINING_REWARD = 1
