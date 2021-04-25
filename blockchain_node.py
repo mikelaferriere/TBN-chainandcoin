@@ -14,6 +14,8 @@ from walletv2 import Wallet
 app = Flask(__name__)
 node_id = uuid4()
 
+IS_MASTERNODE = os.getenv("MASTERNODE") is not None
+
 w = Wallet()
 
 # Instantiate the Blockchain
@@ -22,14 +24,10 @@ blockchain = None
 
 @app.route("/mine", methods=["POST"])
 def mine():
-    values = request.get_json()
-
-    # Check for required fields
-    required = ["miner_address"]
-    if not all(k in values for k in required):
-        return "Missing values", 400
-
-    blockchain.mine(values["miner_address"])
+    if IS_MASTERNODE:
+        response = {"message": "Mining directly to the masternode is not possible"}
+        return jsonify(response), 201
+    blockchain.mine_block()
 
     response = {
         "message": "New Block Forged",
@@ -41,6 +39,9 @@ def mine():
 
 @app.route("/transactions/new", methods=["POST"])
 def new_transaction():
+    if IS_MASTERNODE:
+        response = {"message": "Adding transactions directly to the masternode is not possible"}
+        return jsonify(response), 201
     values = request.get_json()
 
     # Check for required fields
@@ -73,6 +74,15 @@ def full_chain():
     response = {"chain": blockchain.pretty_chain(), "length": len(blockchain.chain)}
     return jsonify(response), 200
 
+
+@app.route("/nodes", methods=["GET"])
+def get_nodes():
+    response = {
+        "message": "All nodes.",
+        "total_nodes": list(blockchain.nodes),
+    }
+
+    return jsonify(response), 201
 
 @app.route("/nodes/register", methods=["POST"])
 def register_nodes():
@@ -119,11 +129,14 @@ def broadcast_block():
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
     block = json.loads(values["block"])
+    print(block)
     if block["index"] == blockchain.last_block.index + 1:
-        if blockchain.add_block(block):
+        added, message = blockchain.add_block(block)
+        if added:
             response = {"message": "Block added"}
             return jsonify(response), 201
-        response = {"message": "Block seems invalid."}
+        else:
+            response = {"message": "Block seems invalid: " + message}
         return jsonify(response), 500
     if block["index"] > blockchain.chain[-1].index:
         response = {
@@ -168,16 +181,20 @@ def broadcast_transaction():
 
 
 if __name__ == "__main__":
-    password = getpass.getpass()
-    result = w.login(password)
-    if not result:
-        raise ValueError("Unable to configure wallet for blockchain integration")
+    address = "MASTERNODE"
+    if not IS_MASTERNODE:
+        password = getpass.getpass()
+        result = w.login(password)
+        if not result:
+            raise ValueError("Unable to configure wallet for blockchain integration")
 
-    if not w.address:
-        raise ValueError(
-            "Must configure a wallet address in order to interact with the blockchain"
-        )
-    blockchain = Blockchain(w.address, node_id)
+        if not w.address:
+            raise ValueError(
+                "Must configure a wallet address in order to interact with the blockchain"
+            )
+        address = w.address
+
+    blockchain = Blockchain(address, node_id)
     if not blockchain:
         raise ValueError("Unabled to initialize blockchain")
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
