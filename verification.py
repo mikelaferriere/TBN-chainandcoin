@@ -67,7 +67,7 @@ class Verification:
                 return False
         return True
 
-    # # Verifies by checking whether sender has sufficient coins or not
+    # Verifies by checking whether sender has sufficient coins or not
     @staticmethod
     def verify_transaction(
         transaction: Transaction, get_balance: Callable, check_funds: bool = True
