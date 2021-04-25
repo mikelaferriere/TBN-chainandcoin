@@ -1,3 +1,4 @@
+import getpass
 from walletv2 import Wallet
 
 
@@ -12,6 +13,7 @@ class WalletNode:
     # Prompts the user for its choice and return it
     def get_user_choice(self):
         user_input = input("Your choice: ")
+        print("\n")
         return user_input
 
     # Starts the node and waits for user input
@@ -21,18 +23,21 @@ class WalletNode:
         # User Input Interface
         while waiting_for_input:
             print("Please choose")
-            print("1: Create wallet")
-            print("2: Load wallet")
+            print("1: Login to wallet")
+            print("2: Create new login for wallet")
             print("3: Create address")
             print("q: Quit")
             user_choice = self.get_user_choice()
             if user_choice == "1":
-                private_key, _public_key = self.wallet.generate_keys()
-                self.wallet.save_keys(private_key)
-                print("Wallet created")
+                password = getpass.getpass()
+                result = self.wallet.login(password)
+                if result:
+                    print("Logged into wallet successfully")
             elif user_choice == "2":
-                self.wallet.retreive_keys()
-                print("Wallet keys loaded")
+                password = getpass.getpass()
+                result = self.wallet.create_login(password)
+                if result:
+                    print("Wallet created successfully")
             elif user_choice == "3":
                 address = self.wallet.generate_address()
                 self.wallet.save_address(address)
@@ -40,13 +45,17 @@ class WalletNode:
             elif user_choice == "q":
                 waiting_for_input = False
             else:
-                break
-            print(
-                "Wallet Address: {}\nBalance: {:6.2f}".format(self.wallet.address, 0.0)
-            )
-        else:
-            print("User left!")
-
+                print("Not an acceptable option\n")
+                continue
+            if self.wallet.logged_in:
+                print(
+                    "Wallet Address: {}\nBalance: {:6.2f}\n".format(
+                        self.wallet.address, 0.0
+                    )
+                )
+            else:
+                print("Not logged in. No wallet to load")
+        print("User left!")
         print("Done!")
 
 
