@@ -193,11 +193,16 @@ class Blockchain:
         :return: <int> The index of the Block that will hold this transaction
         """
 
-        # if Verification.verify_transaction(transaction, self.get_balance):
-        self.__open_transactions.append(transaction)
-        if not is_receiving:
-            self.__broadcast_transaction(transaction)
-
+        if Verification.verify_transaction(transaction, self.get_balance):
+            self.__open_transactions.append(transaction)
+            if not is_receiving:
+                self.__broadcast_transaction(transaction)
+        else:
+            raise ValueError(
+                "The sender does not have enough coin to make this "
+                "transaction. We may want to change this to not raise "
+                "an exception later, but for now, we should break."
+            )
         return self.last_block.index + 1
 
     def proof_of_work(self, difficulty: int) -> int:

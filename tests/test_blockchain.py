@@ -28,19 +28,14 @@ def test_mining_block_with_open_transactions():
 
     chain = Blockchain(w1.address, node_id)
 
-    transaction_1 = Transaction(sender=w1.address, recipient=w2.address, amount=1.5)
-
-    print(w1.private_key)
-    signature_1 = w1.sign_transaction(w1.address, w2.address, 1.5)
-    transaction_1.signature = signature_1
+    transaction_1 = Transaction(sender=w1.address, recipient=w2.address, amount=0.5)
+    transaction_1.signature = w1.sign_transaction(w1.address, w2.address, 0.5)
 
     transaction_2 = Transaction(sender=w2.address, recipient=w1.address, amount=0.5)
-
-    signature_2 = w2.sign_transaction(w2.address, w1.address, 0.5)
-    transaction_2.signature = signature_2
+    transaction_2.signature = w2.sign_transaction(w2.address, w1.address, 0.5)
 
     assert Verification.verify_chain(chain.chain)
-    # Need to give the public_key_1 at least 1.0 coin in their balance
+    # Need to give the w1 at least 1.0 coin in their balance
     chain.mine_block()
     assert Verification.verify_chain(chain.chain)
     chain.add_transaction(transaction_1, is_receiving=True)
@@ -58,3 +53,18 @@ def test_mining_block_with_open_transactions():
         for tx in block.transactions:
             chain_transactions.append(tx)
     assert transaction_2 in chain_transactions
+
+
+def test_not_enough_coin():
+    node_id = uuid4()
+    w = Wallet(test=True)
+    chain = Blockchain(w.address, node_id)
+    transaction = Transaction(sender=w.address, recipient="test", amount=0.5)
+    transaction.signature = w.sign_transaction(w.address, "test", 0.5)
+
+    assert Verification.verify_chain(chain.chain)
+    try:
+        chain.add_transaction(transaction, is_receiving=True)
+        assert "This was expected to throw a ValueError exception but didn't"
+    except ValueError:
+        pass
