@@ -1,3 +1,6 @@
+"""
+API to interact with the blockchain.
+"""
 import getpass
 import os
 import json
@@ -25,6 +28,19 @@ blockchain = None
 
 @app.route("/transactions/pending", methods=["GET"])
 def pending_transaction():
+    """
+    Returns any of the open transactions on the node
+
+    Methods
+    -----
+    GET
+
+    Returns application/json
+    -----
+    Return code : 201
+    Response :
+      transactions : List[Transaction]
+    """
     # Get pending Transactions
     pending = [p.to_ordered_dict() for p in blockchain.get_open_transactions]
     return jsonify(pending), 201
@@ -32,12 +48,40 @@ def pending_transaction():
 
 @app.route("/chain", methods=["GET"])
 def full_chain():
+    """
+    Returns the entire chain along with its length
+
+    Methods
+    -----
+    GET
+
+    Returns application/json
+    -----
+    Return code : 200
+    Response :
+      chain : List[Block]
+      length : int
+    """
     response = {"chain": blockchain.pretty_chain(), "length": len(blockchain.chain)}
     return jsonify(response), 200
 
 
 @app.route("/nodes", methods=["GET"])
 def get_nodes():
+    """
+    Returns all the nodes that this node is aware of
+
+    Methods
+    -----
+    GET
+
+    Returns application/json
+    -----
+    Return code : 201
+    Response :
+      message : str
+      total_nodes : List[str]
+    """
     response = {
         "message": "All nodes.",
         "total_nodes": list(blockchain.nodes),
@@ -48,6 +92,25 @@ def get_nodes():
 
 @app.route("/nodes/register", methods=["POST"])
 def register_nodes():
+    """
+    Registers a new node to the list of nodes.
+    Returns all the nodes that this node is aware of
+
+    Methods
+    -----
+    POST
+
+    Parameters
+    -----
+      nodes : List[uri]
+
+    Returns application/json
+    -----
+    Return code : 201
+    Response :
+      message : str
+      total_nodes : List[str]
+    """
     values = request.get_json()
 
     nodes = values.get("nodes")
@@ -68,6 +131,24 @@ def register_nodes():
 # POST - Broadcast Mined Block Information to Peer Nodes
 @app.route("/broadcast-block", methods=["POST"])
 def broadcast_block():
+    """
+    Broadcasts a new block to all the nodes
+    Returns a status message
+
+    Methods
+    -----
+    POST
+
+    Parameters
+    -----
+      block : Block as Dict
+
+    Returns application/json
+    -----
+    Return code : 201, 400, 409, 500
+    Response :
+      message : str
+    """
     values = request.get_json()
     if not values:
         response = {"message": "No data found."}
@@ -96,6 +177,28 @@ def broadcast_block():
 # POST - Broadcast Transaction Information to Peer Nodes
 @app.route("/broadcast-transaction", methods=["POST"])
 def broadcast_transaction():
+    """
+    Broadcasts a new transaction to all the nodes
+    Returns a status message
+
+    Methods
+    -----
+    POST
+
+    Parameters
+    -----
+      sender : str
+      recipient : str
+      amount : float
+      signature : str
+
+    Returns application/json
+    -----
+    Return code : 201, 400, 500
+    Response :
+      message : str
+      transaction : optional Transaction as Dict
+    """
     values = request.get_json()
     if not values:
         response = {"message": "No data found."}
