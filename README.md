@@ -64,4 +64,4 @@ make install-pre-commit
 ```
 
 # Running the blockchain!
-To run and interact with the blockchain, see **BLOCKCHAIN.md**
+To run and interact with the blockchain, see [BLOCKCHAIN.md](https://github.com/mikelaferriere/TBN-chainandcoin/blob/master/docs/BLOCKCHAIN.md)

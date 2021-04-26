@@ -31,7 +31,7 @@ $ python3 node_console.py
 ```
 
 **NOTE: The first thing that the console will ask you is for your wallet password. If you have not
-created a wallet yet, read through and follow the steps in WALLET.md**
+created a wallet yet, read through and follow the steps in [WALLET.md](https://github.com/mikelaferriere/TBN-chainandcoin/blob/master/docs/WALLET.md)**
 
 After you have logged into your wallet, you will be asked to sync or not sync your chain with
 the network.
