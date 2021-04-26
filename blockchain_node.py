@@ -5,6 +5,7 @@ import json
 from uuid import uuid4
 from flask import Flask, jsonify, request
 
+from block import Block
 from blockchain import Blockchain
 from transaction import Transaction
 from walletv2 import Wallet
@@ -27,6 +28,7 @@ def mine():
     if IS_MASTERNODE:
         response = {"message": "Mining directly to the masternode is not possible"}
         return jsonify(response), 201
+
     blockchain.mine_block()
 
     response = {
@@ -65,7 +67,7 @@ def new_transaction():
 @app.route("/transactions/pending", methods=["GET"])
 def pending_transaction():
     # Get pending Transactions
-    pending = [p.dict() for p in blockchain.get_open_transactions]
+    pending = [p.to_ordered_dict() for p in blockchain.get_open_transactions]
     return jsonify(pending), 201
 
 
@@ -128,9 +130,22 @@ def broadcast_block():
     if "block" not in values:
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
-    block = json.loads(values["block"])
-    print(block)
-    if block["index"] == blockchain.last_block.index + 1:
+    block_dict = json.loads(values["block"])
+    block = Block(
+        proof=int(block_dict["proof"]),
+        previous_hash=block_dict["previous_hash"],
+        timestamp=Block.date_of_string(block_dict["timestamp"]),
+        index=block_dict["index"],
+        transactions = [
+            Transaction(
+                sender=tx["sender"],
+                recipient=tx["recipient"],
+                signature=tx["signature"],
+                amount=tx["amount"],
+            )
+            for tx in block_dict["transactions"]
+        ])
+    if block.index == blockchain.last_block.index + 1:
         added, message = blockchain.add_block(block)
         if added:
             response = {"message": "Block added"}
@@ -138,7 +153,7 @@ def broadcast_block():
         else:
             response = {"message": "Block seems invalid: " + message}
         return jsonify(response), 500
-    if block["index"] > blockchain.chain[-1].index:
+    if block.index > blockchain.chain[-1].index:
         response = {
             "message": "Incoming block index higher than last block on current chain"
         }
@@ -154,7 +169,7 @@ def broadcast_transaction():
     if not values:
         response = {"message": "No data found."}
         return jsonify(response), 400
-    required = ["sender", "recipient", "amount"]
+    required = ["sender", "recipient", "amount", "signature"]
     if not all(key in values for key in required):
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
@@ -163,6 +178,7 @@ def broadcast_transaction():
             sender=values["sender"],
             recipient=values["recipient"],
             amount=values["amount"],
+            signature=values["signature"]
         ),
         is_receiving=True,
     )
@@ -173,6 +189,7 @@ def broadcast_transaction():
                 "sender": values["sender"],
                 "recipient": values["recipient"],
                 "amount": values["amount"],
+                "signature": values["signature"],
             },
         }
         return jsonify(response), 201
@@ -197,4 +214,13 @@ if __name__ == "__main__":
     blockchain = Blockchain(address, node_id)
     if not blockchain:
         raise ValueError("Unabled to initialize blockchain")
+
+    if not IS_MASTERNODE:
+        print("Connecting to MASTERNODE")
+        blockchain.register_node("https://sedrik.life/blockchain")
+
+        print("Syncing with the network")
+        blockchain.resolve_conflicts()
+
+        print("Synced with the network")
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))

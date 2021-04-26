@@ -26,16 +26,16 @@ class Block(BaseModel):
                     ("index", self.index),
                     ("proof", self.proof),
                     ("previous_hash", self.previous_hash),
-                    ("timestamp", date_to_string(self.timestamp)),
+                    ("timestamp", self.date_to_string(self.timestamp)),
                     ("transactions", [t.to_ordered_dict() for t in self.transactions]),
                 ]
             )
         )
 
+    @staticmethod
+    def date_of_string(date: str) -> datetime:
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
 
-def date_of_string(date: str) -> datetime:
-    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
-
-
-def date_to_string(date: datetime) -> str:
-    return datetime.strftime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+    @staticmethod
+    def date_to_string(date: datetime) -> str:
+        return datetime.strftime(date, "%Y-%m-%dT%H:%M:%S.%f%z")

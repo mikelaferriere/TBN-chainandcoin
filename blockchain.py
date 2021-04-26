@@ -1,5 +1,6 @@
 from functools import reduce
 
+from datetime import datetime
 from time import time
 from urllib.parse import urlparse
 from uuid import UUID
@@ -93,7 +94,7 @@ class Blockchain:
         :return: <str>
         """
 
-        return [c.dict() for c in self.chain]
+        return [c.to_ordered_dict() for c in self.chain]
 
     def __broadcast_transaction(self, transaction: Transaction) -> None:
         for node in self.nodes:
@@ -272,44 +273,28 @@ class Blockchain:
 
         return block
 
-    def add_block(self, block: Dict) -> Tuple[bool, Optional[str]]:
-        transactions = [
-            Transaction(
-                sender=tx["sender"],
-                recipient=tx["recipient"],
-                signature=tx["signature"],
-                amount=tx["amount"],
-            )
-            for tx in block["transactions"]
-        ]
+    def add_block(self, block: Block) -> Tuple[bool, Optional[str]]:
         if not Verification.valid_proof(
-            block["proof"], transactions, block["previous_hash"], 4
+            block.proof, block.transactions[:-1], block.previous_hash, 4
         ):
             return False, "Proof is not valid"
-        if not Verification.hash_block(self.last_block) == block["previous_hash"]:
+        if not Verification.hash_block(self.last_block) == block.previous_hash:
             return False, "Hash of last block does not equal previous hash in the current block"
-        converted_block = Block(
-            index=block["index"],
-            previous_hash=block["previous_hash"],
-            transactions=transactions,
-            proof=block["proof"],
-            timestamp=block["timestamp"],
-        )
-        self.add_block_to_chain(converted_block)
+        self.add_block_to_chain(block)
         stored_transactions = self.__open_transactions[:]
-        for itx in block["transactions"]:
+        for itx in block.transactions:
             for opentx in stored_transactions:
                 if (
-                    opentx.sender == itx["sender"]
-                    and opentx.recipient == itx["recipient"]
-                    and opentx.amount == itx["amount"]
-                    and opentx.signature == itx["signature"]
+                    opentx.sender == itx.sender
+                    and opentx.recipient == itx.recipient
+                    and opentx.amount == itx.amount
+                    and opentx.signature == itx.signature
                 ):
                     try:
                         self.__open_transactions.remove(opentx)
                     except ValueError:
                         print("Item was already removed")
-        return True
+        return True, "success"
 
     def register_node(self, address: str) -> None:
         """
@@ -343,7 +328,22 @@ class Blockchain:
 
             if response.ok:
                 length = response.json()["length"]
-                chain = response.json()["chain"]
+                chain_dict = response.json()["chain"]
+
+                chain = [Block(
+                    proof=int(block_dict["proof"]),
+                    previous_hash=block_dict["previous_hash"],
+                    timestamp=Block.date_of_string(block_dict["timestamp"]),
+                    index=block_dict["index"],
+                    transactions = [
+                        Transaction(
+                            sender=tx["sender"],
+                            recipient=tx["recipient"],
+                            signature=tx["signature"],
+                            amount=tx["amount"],
+                        )
+                        for tx in block_dict["transactions"]
+                    ]) for block_dict in chain_dict]
 
                 # Check if the length is longer and the chain is valid
                 if length > max_length and Verification.verify_chain(chain):
