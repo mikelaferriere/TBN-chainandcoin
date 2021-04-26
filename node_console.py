@@ -112,7 +112,9 @@ if __name__ == "__main__":
             "If you haven't created a wallet yet, follow the instructions in WALLET.md"
         )
     if not node.wallet.address:
-        raise ValueError("Must generate an address to be used for blockchain transactions")
+        raise ValueError(
+            "Must generate an address to be used for blockchain transactions"
+        )
 
     node.blockchain = Blockchain(node.wallet.address, node.id)
 
@@ -130,5 +132,6 @@ if __name__ == "__main__":
 
         print("Synced with the network")
 
-    print("Wallet {}\nBalance: {:6.2f}".format(node.wallet.address, node.blockchain.get_balance()))
+    print(f"Wallet {node.wallet.address}")
+    print("Balance: {:6.2f}".format(node.blockchain.get_balance()))  # type: ignore
     node.listen_for_input()

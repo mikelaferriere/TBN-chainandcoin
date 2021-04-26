@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from typing import Dict, List
+from typing import Any, Dict, List
 from collections import OrderedDict
 
 from pydantic import BaseModel
@@ -39,3 +39,21 @@ class Block(BaseModel):
     @staticmethod
     def date_to_string(date: datetime) -> str:
         return datetime.strftime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+
+    @staticmethod
+    def generate_from_dict(block_dict: Dict) -> Any:
+        return Block(
+            proof=int(block_dict["proof"]),
+            previous_hash=block_dict["previous_hash"],
+            timestamp=Block.date_of_string(block_dict["timestamp"]),
+            index=block_dict["index"],
+            transactions=[
+                Transaction(
+                    sender=tx["sender"],
+                    recipient=tx["recipient"],
+                    signature=tx["signature"],
+                    amount=tx["amount"],
+                )
+                for tx in block_dict["transactions"]
+            ],
+        )

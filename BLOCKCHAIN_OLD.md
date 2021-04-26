@@ -26,8 +26,7 @@ change down the line, but it is more than enough to go on for the initial protot
 There are a few things to do with the chain once the node is running. By running `make run`,
 the api will be running on `http://localhost:5000`
 
-**NOTE: I pipe the curl command to `jq` in order to format the output into something human
-readable**
+**NOTE: Piping the curl command to `jq` will format the output into something human readable**
 
 
 ## Check the chain
@@ -39,7 +38,7 @@ $ curl localhost:5000/chain | jq .
 
 ## Add a new transaction to the chain
 
-Adding a new transaction is a POST which requires 3 fields; sender, recipient, and amount.
+Adding a new transaction is a POST which requires 4 fields; sender, recipient, and amount.
 
 ```
 $ curl -X POST -H "Content-Type: application/json" localhost:5000/transactions/new -d '{"sender": "newuser", "recipient": "otheruser", "amount": 5}' | jq .

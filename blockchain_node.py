@@ -23,47 +23,6 @@ w = Wallet()
 blockchain = None
 
 
-@app.route("/mine", methods=["POST"])
-def mine():
-    if IS_MASTERNODE:
-        response = {"message": "Mining directly to the masternode is not possible"}
-        return jsonify(response), 201
-
-    blockchain.mine_block()
-
-    response = {
-        "message": "New Block Forged",
-        "block": blockchain.last_block.to_ordered_dict(),
-    }
-
-    return jsonify(response), 200
-
-
-@app.route("/transactions/new", methods=["POST"])
-def new_transaction():
-    if IS_MASTERNODE:
-        response = {"message": "Adding transactions directly to the masternode is not possible"}
-        return jsonify(response), 201
-    values = request.get_json()
-
-    # Check for required fields
-    required = ["sender", "recipient", "amount"]
-    if not all(k in values for k in required):
-        return "Missing values", 400
-
-    # Create a new Transaction
-    index = blockchain.add_transaction(
-        Transaction(
-            sender=values["sender"],
-            recipient=values["recipient"],
-            amount=values["amount"],
-        )
-    )
-
-    response = {"message": f"Transaction will be added to Block {index}"}
-    return jsonify(response), 201
-
-
 @app.route("/transactions/pending", methods=["GET"])
 def pending_transaction():
     # Get pending Transactions
@@ -86,6 +45,7 @@ def get_nodes():
 
     return jsonify(response), 201
 
+
 @app.route("/nodes/register", methods=["POST"])
 def register_nodes():
     values = request.get_json()
@@ -105,21 +65,6 @@ def register_nodes():
     return jsonify(response), 201
 
 
-@app.route("/nodes/resolve", methods=["GET"])
-def consensus():
-    replaced = blockchain.resolve_conflicts()
-
-    if replaced:
-        response = {
-            "message": "Our chain was replaced",
-            "new_chain": blockchain.chain,
-        }
-    else:
-        response = {"message": "Our chain is authoritative", "chain": blockchain.chain}
-
-    return jsonify(response), 200
-
-
 # POST - Broadcast Mined Block Information to Peer Nodes
 @app.route("/broadcast-block", methods=["POST"])
 def broadcast_block():
@@ -131,27 +76,13 @@ def broadcast_block():
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
     block_dict = json.loads(values["block"])
-    block = Block(
-        proof=int(block_dict["proof"]),
-        previous_hash=block_dict["previous_hash"],
-        timestamp=Block.date_of_string(block_dict["timestamp"]),
-        index=block_dict["index"],
-        transactions = [
-            Transaction(
-                sender=tx["sender"],
-                recipient=tx["recipient"],
-                signature=tx["signature"],
-                amount=tx["amount"],
-            )
-            for tx in block_dict["transactions"]
-        ])
+    block = Block.generate_from_dict(block_dict)
     if block.index == blockchain.last_block.index + 1:
         added, message = blockchain.add_block(block)
         if added:
             response = {"message": "Block added"}
             return jsonify(response), 201
-        else:
-            response = {"message": "Block seems invalid: " + message}
+        response = {"message": "Block seems invalid: " + message}
         return jsonify(response), 500
     if block.index > blockchain.chain[-1].index:
         response = {
@@ -178,7 +109,7 @@ def broadcast_transaction():
             sender=values["sender"],
             recipient=values["recipient"],
             amount=values["amount"],
-            signature=values["signature"]
+            signature=values["signature"],
         ),
         is_receiving=True,
     )
