@@ -1,4 +1,5 @@
 import getpass
+import json
 from uuid import uuid4
 
 from blockchain import Blockchain
@@ -16,14 +17,7 @@ class Node:
     def __init__(self):
         self.id = str(uuid4())
         self.wallet = Wallet()
-
-        if not self.wallet.logged_in or not self.wallet.address:
-            if not self.wallet.logged_in:
-                print("Must log into wallet")
-            elif not self.wallet.address:
-                print("Must generate an address to be used for blockchain transactions")
-        else:
-            self.blockchain = Blockchain(self.wallet.address, self.id)
+        self.blockchain = None
 
     # Get the user input, transform it from a string to a float and store it in user_input
     def get_transaction_value(self):
@@ -38,9 +32,7 @@ class Node:
 
     # Output the blockchain list to the console
     def print_blockchain_elements(self):
-        for block in self.blockchain.chain:
-            print("Outputting Block")
-            print(block.to_ordered_dict())
+        print(json.dumps(self.blockchain.pretty_chain(), indent=2))
         print("-" * 20)
 
     # Starts the node and waits for user input
@@ -51,12 +43,11 @@ class Node:
 
         # User Input Interface
         while waiting_for_input:
-            print("Please choose")
+            print("\nPlease choose")
             print("1: Add a new transaction value")
             print("2: Mine a new block")
             print("3: Output the blockchain blocks")
             print("4: Check transaction validity")
-            print("5: Load wallet")
             print("q: Quit")
             user_choice = self.get_user_choice()
             if user_choice == "1":
@@ -88,10 +79,6 @@ class Node:
                     print("All transactions are valid")
                 else:
                     print("There are invalid transactions")
-            elif user_choice == "5":
-                passphrase = getpass.getpass()
-                self.wallet.login(passphrase)
-                self.blockchain = Blockchain(self.wallet.address, self.id)
             elif user_choice == "q":
                 waiting_for_input = False
             else:
@@ -114,4 +101,37 @@ class Node:
 
 if __name__ == "__main__":
     node = Node()
+    print("Load wallet")
+    passphrase = getpass.getpass()
+    node.wallet.login(passphrase)
+
+    if not node.wallet.logged_in:
+        raise ValueError(
+            "\nMust log into wallet. \n"
+            "Maybe it was the wrong password?\n"
+            "If you haven't created a wallet yet, follow the instructions in WALLET.md"
+        )
+    if not node.wallet.address:
+        raise ValueError(
+            "Must generate an address to be used for blockchain transactions"
+        )
+
+    node.blockchain = Blockchain(node.wallet.address, node.id)
+
+    print("\nDo you want to sync with the blockchain, or just run it locally?")
+    print("Please choose")
+    print("1: Sync with network blockchain")
+    print("2: Run with local blockchain")
+    choice = node.get_user_choice()
+    if choice == "1":
+        print("Connecting to MASTERNODE")
+        node.blockchain.register_node("https://sedrik.life/blockchain")
+
+        print("Syncing with the network")
+        node.blockchain.resolve_conflicts()
+
+        print("Synced with the network")
+
+    print(f"Wallet {node.wallet.address}")
+    print("Balance: {:6.2f}".format(node.blockchain.get_balance()))  # type: ignore
     node.listen_for_input()

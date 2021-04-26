@@ -5,6 +5,7 @@ import json
 from uuid import uuid4
 from flask import Flask, jsonify, request
 
+from block import Block
 from blockchain import Blockchain
 from transaction import Transaction
 from walletv2 import Wallet
@@ -14,57 +15,18 @@ from walletv2 import Wallet
 app = Flask(__name__)
 node_id = uuid4()
 
+IS_MASTERNODE = os.getenv("MASTERNODE") is not None
+
 w = Wallet()
 
 # Instantiate the Blockchain
 blockchain = None
 
 
-@app.route("/mine", methods=["POST"])
-def mine():
-    values = request.get_json()
-
-    # Check for required fields
-    required = ["miner_address"]
-    if not all(k in values for k in required):
-        return "Missing values", 400
-
-    blockchain.mine(values["miner_address"])
-
-    response = {
-        "message": "New Block Forged",
-        "block": blockchain.last_block.to_ordered_dict(),
-    }
-
-    return jsonify(response), 200
-
-
-@app.route("/transactions/new", methods=["POST"])
-def new_transaction():
-    values = request.get_json()
-
-    # Check for required fields
-    required = ["sender", "recipient", "amount"]
-    if not all(k in values for k in required):
-        return "Missing values", 400
-
-    # Create a new Transaction
-    index = blockchain.add_transaction(
-        Transaction(
-            sender=values["sender"],
-            recipient=values["recipient"],
-            amount=values["amount"],
-        )
-    )
-
-    response = {"message": f"Transaction will be added to Block {index}"}
-    return jsonify(response), 201
-
-
 @app.route("/transactions/pending", methods=["GET"])
 def pending_transaction():
     # Get pending Transactions
-    pending = [p.dict() for p in blockchain.get_open_transactions]
+    pending = [p.to_ordered_dict() for p in blockchain.get_open_transactions]
     return jsonify(pending), 201
 
 
@@ -72,6 +34,16 @@ def pending_transaction():
 def full_chain():
     response = {"chain": blockchain.pretty_chain(), "length": len(blockchain.chain)}
     return jsonify(response), 200
+
+
+@app.route("/nodes", methods=["GET"])
+def get_nodes():
+    response = {
+        "message": "All nodes.",
+        "total_nodes": list(blockchain.nodes),
+    }
+
+    return jsonify(response), 201
 
 
 @app.route("/nodes/register", methods=["POST"])
@@ -93,21 +65,6 @@ def register_nodes():
     return jsonify(response), 201
 
 
-@app.route("/nodes/resolve", methods=["GET"])
-def consensus():
-    replaced = blockchain.resolve_conflicts()
-
-    if replaced:
-        response = {
-            "message": "Our chain was replaced",
-            "new_chain": blockchain.chain,
-        }
-    else:
-        response = {"message": "Our chain is authoritative", "chain": blockchain.chain}
-
-    return jsonify(response), 200
-
-
 # POST - Broadcast Mined Block Information to Peer Nodes
 @app.route("/broadcast-block", methods=["POST"])
 def broadcast_block():
@@ -118,14 +75,16 @@ def broadcast_block():
     if "block" not in values:
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
-    block = json.loads(values["block"])
-    if block["index"] == blockchain.last_block.index + 1:
-        if blockchain.add_block(block):
+    block_dict = json.loads(values["block"])
+    block = Block.generate_from_dict(block_dict)
+    if block.index == blockchain.last_block.index + 1:
+        added, message = blockchain.add_block(block)
+        if added:
             response = {"message": "Block added"}
             return jsonify(response), 201
-        response = {"message": "Block seems invalid."}
+        response = {"message": "Block seems invalid: " + message}
         return jsonify(response), 500
-    if block["index"] > blockchain.chain[-1].index:
+    if block.index > blockchain.chain[-1].index:
         response = {
             "message": "Incoming block index higher than last block on current chain"
         }
@@ -141,7 +100,7 @@ def broadcast_transaction():
     if not values:
         response = {"message": "No data found."}
         return jsonify(response), 400
-    required = ["sender", "recipient", "amount"]
+    required = ["sender", "recipient", "amount", "signature"]
     if not all(key in values for key in required):
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
@@ -150,6 +109,7 @@ def broadcast_transaction():
             sender=values["sender"],
             recipient=values["recipient"],
             amount=values["amount"],
+            signature=values["signature"],
         ),
         is_receiving=True,
     )
@@ -160,6 +120,7 @@ def broadcast_transaction():
                 "sender": values["sender"],
                 "recipient": values["recipient"],
                 "amount": values["amount"],
+                "signature": values["signature"],
             },
         }
         return jsonify(response), 201
@@ -168,16 +129,29 @@ def broadcast_transaction():
 
 
 if __name__ == "__main__":
-    password = getpass.getpass()
-    result = w.login(password)
-    if not result:
-        raise ValueError("Unable to configure wallet for blockchain integration")
+    address = "MASTERNODE"
+    if not IS_MASTERNODE:
+        password = getpass.getpass()
+        result = w.login(password)
+        if not result:
+            raise ValueError("Unable to configure wallet for blockchain integration")
 
-    if not w.address:
-        raise ValueError(
-            "Must configure a wallet address in order to interact with the blockchain"
-        )
-    blockchain = Blockchain(w.address, node_id)
+        if not w.address:
+            raise ValueError(
+                "Must configure a wallet address in order to interact with the blockchain"
+            )
+        address = w.address
+
+    blockchain = Blockchain(address, node_id)
     if not blockchain:
         raise ValueError("Unabled to initialize blockchain")
+
+    if not IS_MASTERNODE:
+        print("Connecting to MASTERNODE")
+        blockchain.register_node("https://sedrik.life/blockchain")
+
+        print("Syncing with the network")
+        blockchain.resolve_conflicts()
+
+        print("Synced with the network")
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from typing import Dict, List
+from typing import Any, Dict, List
 from collections import OrderedDict
 
 from pydantic import BaseModel
@@ -26,16 +26,34 @@ class Block(BaseModel):
                     ("index", self.index),
                     ("proof", self.proof),
                     ("previous_hash", self.previous_hash),
-                    ("timestamp", date_to_string(self.timestamp)),
+                    ("timestamp", self.date_to_string(self.timestamp)),
                     ("transactions", [t.to_ordered_dict() for t in self.transactions]),
                 ]
             )
         )
 
+    @staticmethod
+    def date_of_string(date: str) -> datetime:
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
 
-def date_of_string(date: str) -> datetime:
-    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+    @staticmethod
+    def date_to_string(date: datetime) -> str:
+        return datetime.strftime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
 
-
-def date_to_string(date: datetime) -> str:
-    return datetime.strftime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+    @staticmethod
+    def generate_from_dict(block_dict: Dict) -> Any:
+        return Block(
+            proof=int(block_dict["proof"]),
+            previous_hash=block_dict["previous_hash"],
+            timestamp=Block.date_of_string(block_dict["timestamp"]),
+            index=block_dict["index"],
+            transactions=[
+                Transaction(
+                    sender=tx["sender"],
+                    recipient=tx["recipient"],
+                    signature=tx["signature"],
+                    amount=tx["amount"],
+                )
+                for tx in block_dict["transactions"]
+            ],
+        )

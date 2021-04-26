@@ -4,7 +4,7 @@ from time import time
 from urllib.parse import urlparse
 from uuid import UUID
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import json
 import requests
@@ -93,11 +93,11 @@ class Blockchain:
         :return: <str>
         """
 
-        return [c.dict() for c in self.chain]
+        return [c.to_ordered_dict() for c in self.chain]
 
     def __broadcast_transaction(self, transaction: Transaction) -> None:
         for node in self.nodes:
-            url = "http://{}/broadcast-transaction".format(node)
+            url = f"{node}/broadcast-transaction"
             try:
                 response = requests.post(
                     url,
@@ -109,19 +109,19 @@ class Blockchain:
                     },
                 )
                 if response.status_code == 400 or response.status_code == 500:
-                    print("Transaction declined, needs resolving")
+                    print(f"Transaction declined, needs resolving: {response.json()}")
             except requests.exceptions.ConnectionError:
                 continue
 
     def __broadcast_block(self, block: Block) -> None:
         for node in self.nodes:
-            url = "http://{}/broadcast-block".format(node)
+            url = f"{node}/broadcast-block"
             try:
                 response = requests.post(
                     url, json={"block": json.dumps(block.to_ordered_dict())}
                 )
                 if response.status_code == 400 or response.status_code == 500:
-                    print("Block declined, needs resolving")
+                    print(f"Block declined, needs resolving: {response.json()}")
             except requests.exceptions.ConnectionError:
                 continue
 
@@ -272,46 +272,31 @@ class Blockchain:
 
         return block
 
-    def add_block(self, block: Dict) -> bool:
-        transactions = [
-            Transaction(
-                sender=tx["sender"],
-                recipient=tx["recipient"],
-                signature=tx["signature"],
-                amount=tx["amount"],
+    def add_block(self, block: Block) -> Tuple[bool, Optional[str]]:
+        if not Verification.valid_proof(
+            block.proof, block.transactions[:-1], block.previous_hash, 4
+        ):
+            return False, "Proof is not valid"
+        if not Verification.hash_block(self.last_block) == block.previous_hash:
+            return (
+                False,
+                "Hash of last block does not equal previous hash in the current block",
             )
-            for tx in block["transactions"]
-        ]
-        proof_is_valid = Verification.valid_proof(
-            block["proof"], transactions, block["previous_hash"], 4
-        )
-        hashes_match = (
-            Verification.hash_block(self.last_block) == block["previous_hash"]
-        )
-        if not proof_is_valid or not hashes_match:
-            return False
-        converted_block = Block(
-            index=block["index"],
-            previous_hash=block["previous_hash"],
-            transactions=transactions,
-            proof=block["proof"],
-            timestamp=block["timestamp"],
-        )
-        self.add_block_to_chain(converted_block)
+        self.add_block_to_chain(block)
         stored_transactions = self.__open_transactions[:]
-        for itx in block["transactions"]:
+        for itx in block.transactions:
             for opentx in stored_transactions:
                 if (
-                    opentx.sender == itx["sender"]
-                    and opentx.recipient == itx["recipient"]
-                    and opentx.amount == itx["amount"]
-                    and opentx.signature == itx["signature"]
+                    opentx.sender == itx.sender
+                    and opentx.recipient == itx.recipient
+                    and opentx.amount == itx.amount
+                    and opentx.signature == itx.signature
                 ):
                     try:
                         self.__open_transactions.remove(opentx)
                     except ValueError:
                         print("Item was already removed")
-        return True
+        return True, "success"
 
     def register_node(self, address: str) -> None:
         """
@@ -321,7 +306,9 @@ class Blockchain:
         """
 
         parsed_url = urlparse(address)
-        self.nodes.add(parsed_url.netloc)
+        if not parsed_url.scheme:
+            raise ValueError("Must provide scheme (http/https) in node uri")
+        self.nodes.add(f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}")
 
     def resolve_conflicts(self) -> bool:
         """
@@ -339,11 +326,15 @@ class Blockchain:
 
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
-            response = requests.get(f"http://{node}/chain")
+            response = requests.get(f"{node}/chain")
 
             if response.ok:
                 length = response.json()["length"]
-                chain = response.json()["chain"]
+                chain_dict = response.json()["chain"]
+
+                chain = [
+                    Block.generate_from_dict(block_dict) for block_dict in chain_dict
+                ]
 
                 # Check if the length is longer and the chain is valid
                 if length > max_length and Verification.verify_chain(chain):
