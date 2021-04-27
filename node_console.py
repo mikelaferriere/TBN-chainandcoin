@@ -19,26 +19,32 @@ class Node:
         self.wallet = Wallet()
         self.blockchain = None
 
-    # Get the user input, transform it from a string to a float and store it in user_input
     def get_transaction_value(self):
+        """
+        Get the user input, transform it from a string to a float and store it in user_input
+        """
         tx_recipient = input("Enter the recipient of the transaction: ")
         tx_amount = float(input("Your transaction amount please: "))
         return tx_recipient, tx_amount
 
-    # Prompts the user for its choice and return it
     def get_user_choice(self):
+        """
+        Prompts the user for its choice and return it
+        """
         user_input = input("Your choice: ")
         return user_input
 
-    # Output the blockchain list to the console
     def print_blockchain_elements(self):
+        """
+        Output the blockchain list to the console
+        """
         print(json.dumps(self.blockchain.pretty_chain(), indent=2))
         print("-" * 20)
 
-    # Starts the node and waits for user input
-    def listen_for_input(  # pylint: disable=too-many-branches,too-many-statements
-        self,
-    ) -> None:
+    def listen_for_input(self) -> None:  # pylint: disable=too-many-branches
+        """
+        Starts the node and waits for user input
+        """
         waiting_for_input = True
 
         # User Input Interface
