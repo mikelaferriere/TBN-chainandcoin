@@ -1,3 +1,6 @@
+"""
+The blockchain (Really need to add a better description of what this is)
+"""
 from functools import reduce
 
 from time import time
@@ -15,27 +18,31 @@ from verification import Verification
 from walletv2 import Wallet
 
 
-MINING_REWARD = 1
+MINING_REWARD = 10
 
 
 class Blockchain:
     """
-    The blockchain
-
     This class manages the chain of blocks, open transactions and the node on which it's running
-      chain: The list of blocks
-      open_transactions (private): The list of transactions that have no yet been committed
-                                   in a block to the blockchain
-      hosting_node: The connected node (which runs the blockchain)
+      chain_identifier : <uuid>
+          Unique Identifier for this particular node
+      chain: <List[Block]>
+          The list of blocks
+      __open_transactions (private): <List<Transaction]>
+          The list of transactions that have not yet been committed in a block to the blockchain
+      difficulty : <int> optional
+          The difficulty for mining
+      address : <str>
+          Wallet address that transfers initiated from this node will be used as the recipient
     """
 
-    def __init__(self, public_key: str, node_id: UUID, difficulty: int = 4) -> None:
+    def __init__(self, address: str, node_id: UUID, difficulty: int = 4) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
         self.__open_transactions = []  # type: List[Transaction]
         self.nodes = set()  # type: Set[Any]
         self.difficulty = difficulty
-        self.public_key = public_key
+        self.address = address
 
         # Create the 'genesis' block. This is the inital block.
         genesis_block = Block(
@@ -61,9 +68,17 @@ class Blockchain:
 
     @chain.setter
     def chain(self, val: List[Block]) -> None:
+        """
+        Setter function to directly set the value of the chain. This is only used when
+        re-aligning the chain with the rest of the network, and setting up the genesis block.
+        """
         self.__chain = val
 
     def add_block_to_chain(self, block: Block) -> None:
+        """
+        Adds the current block to the chain. By this time, it has been fully verified and
+        the chain will be valid once it is added
+        """
         self.__chain.append(block)
 
     @property
@@ -96,6 +111,12 @@ class Blockchain:
         return [c.to_ordered_dict() for c in self.chain]
 
     def __broadcast_transaction(self, transaction: Transaction) -> None:
+        """
+        Broadcast the current transaction to all nodes on the network that this node
+        is aware of.
+
+        This ensures synchronicity across all nodes on the network.
+        """
         for node in self.nodes:
             url = f"{node}/broadcast-transaction"
             try:
@@ -114,6 +135,14 @@ class Blockchain:
                 continue
 
     def __broadcast_block(self, block: Block) -> None:
+        """
+        Broadcast the current block to all nodes on the network that this node
+        is aware of.
+
+        This block has already been validated and approved
+
+        This ensures synchronicity across all nodes on the network.
+        """
         for node in self.nodes:
             url = f"{node}/broadcast-block"
             try:
@@ -127,10 +156,14 @@ class Blockchain:
 
     # Calculate and return the balance of the user
     def get_balance(self, sender: str = None) -> Optional[float]:
+        """
+        Calculate the current balance of the sender according to the amount of
+        transactions on the chain.
+        """
         if not sender:
-            if not self.public_key:
+            if not self.address:
                 return None
-            participant = self.public_key
+            participant = self.address
         else:
             participant = sender
 
@@ -187,10 +220,13 @@ class Blockchain:
     ) -> int:
         """
         Creates a new transaction to go into the next mined Block
-        :param transaction: <Transaction> A single Transaction
-        :param is_receiving: Optional <bool> Use to determine if the transaction was created
-                                             by this node or another on the network
-        :return: <int> The index of the Block that will hold this transaction
+        :param transaction: <Transaction>
+            A single Transaction
+        :param is_receiving: Optional <bool>
+            Use to determine if the transaction was created
+            by this node or another on the network
+        :return: <int>
+            The index of the Block that will hold this transaction
         """
 
         if Verification.verify_transaction(transaction, self.get_balance):
@@ -226,7 +262,25 @@ class Blockchain:
         return proof
 
     def mine_block(self, difficulty: Optional[int] = None) -> Optional[Block]:
-        if not self.public_key:
+        """
+        The current node runs the mining protocol, and depending on the difficulty, this
+        could take a lot of processing power.
+
+        Once the proof is discovered, or "mined", the reward transaction is created.
+
+        Then all of the open transactions are validated and verified, ensuring that
+        the senders in all of the transactions have enough coin to conduct the transaction.
+
+        Once the transactions are validated, the reward block is added to the list of
+        open transactions. This is because Mining transactions do not need to be validated
+        since they are created by the node itself.
+
+        The block is then added directy to the node's chain and the open_transactions is
+        cleared and ready for a new block to be mined
+
+        Finally, the new block is broadcasted to all connected nodes.
+        """
+        if not self.address:
             return None
 
         difficulty = difficulty if difficulty is not None else self.difficulty
@@ -242,7 +296,7 @@ class Blockchain:
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
         reward_transaction = Transaction(
-            sender="0", recipient=self.public_key, amount=MINING_REWARD
+            sender="0", recipient=self.address, amount=MINING_REWARD
         )
 
         # Copy transactions instead of manipulating the original open_transactions list
@@ -273,6 +327,14 @@ class Blockchain:
         return block
 
     def add_block(self, block: Block) -> Tuple[bool, Optional[str]]:
+        """
+        When a new block is received via a broadcast, the receiving nodes must validate the
+        block to make sure it is valid, and then add it to their chains.
+
+        This also makes sure that there are not open transactions on any of the nodes
+        that match a transaction in the broadcasted block. This is some safety to ensure that
+        there is not double spending.
+        """
         if not Verification.valid_proof(
             block.proof, block.transactions[:-1], block.previous_hash, 4
         ):

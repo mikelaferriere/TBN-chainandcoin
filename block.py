@@ -34,14 +34,24 @@ class Block(BaseModel):
 
     @staticmethod
     def date_of_string(date: str) -> datetime:
+        """
+        Converts a date of the standard format to a datetime
+        """
         return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
 
     @staticmethod
     def date_to_string(date: datetime) -> str:
+        """
+        Converts a datetime to a specific string format including seconds, milliseconds
+        and TimeZone
+        """
         return datetime.strftime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
 
     @staticmethod
     def generate_from_dict(block_dict: Dict) -> Any:
+        """
+        Converts a raw block in dictionary form into a proper Block type
+        """
         return Block(
             proof=int(block_dict["proof"]),
             previous_hash=block_dict["previous_hash"],
