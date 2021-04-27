@@ -9,8 +9,10 @@ class Transaction(BaseModel):
     amount: float
     signature: Optional[str] = None
 
-    # Converts the transaction into a hashable OrderedDict
     def to_ordered_dict(self) -> Dict:
+        """
+        Converts the transaction into a hashable OrderedDict and then into a dictionary
+        """
         return dict(
             OrderedDict(
                 [
