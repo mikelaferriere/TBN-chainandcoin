@@ -8,13 +8,20 @@ from transaction import Transaction
 from walletv2 import Wallet
 
 
-def hash_bytes_256(block_string: bytes) -> str:
-    return hashlib.sha256(block_string).hexdigest()
+def hash_bytes_256(b: bytes) -> str:
+    """
+    Hash a byte array and convert it to a string
+    """
+    return hashlib.sha256(b).hexdigest()
 
 
 class Verification:
     @staticmethod
     def hash_block(block: Block) -> str:
+        """
+        First, convert the block to an OrderedDict dictionary
+        Then hash the block using SHA256
+        """
         hashable_block = block.to_ordered_dict()
         return hash_bytes_256(json.dumps(hashable_block, sort_keys=True).encode())
 
@@ -67,11 +74,20 @@ class Verification:
                 return False
         return True
 
-    # Verifies by checking whether sender has sufficient coins or not
     @staticmethod
     def verify_transaction(
         transaction: Transaction, get_balance: Callable, check_funds: bool = True
     ) -> bool:
+        """
+        Verifies the transaction.
+
+        If check_funds is True, ensure that the sender has enough coin (based on the
+        transactions on the chain). Also make sure that the signature is the expected
+        signature for the given transaction.
+
+        If check_funds is False, just check that the signature is the expected signature
+        for the given transaction
+        """
         if check_funds:
             sender_balance = get_balance(transaction.sender)
             return sender_balance >= transaction.amount and Wallet.verify_transaction(
@@ -79,11 +95,13 @@ class Verification:
             )
         return Wallet.verify_transaction(transaction)
 
-    # Verifies all open & unprocessed transactions
     @classmethod
     def verify_transactions(
         cls, open_transactions: List[Transaction], get_balance: Callable
     ):
+        """
+        Verifies all open & unprocessed transactions without checking sender's balance
+        """
         return all(
             cls.verify_transaction(tx, get_balance, False) for tx in open_transactions
         )
