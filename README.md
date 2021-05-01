@@ -63,5 +63,12 @@ tested nicely before they get either to `master` or in a PR.
 make install-pre-commit
 ```
 
-# Running the blockchain!
+# Running the blockchain node!
 To run and interact with the blockchain, see [BLOCKCHAIN.md](https://github.com/mikelaferriere/TBN-chainandcoin/blob/master/docs/BLOCKCHAIN.md)
+
+# Running the blockchain console!
+To run and interact with the blockchain, see [BLOCKCHAIN.md](https://github.com/mikelaferriere/TBN-chainandcoin/blob/master/docs/BLOCKCHAIN.md)
+
+```
+$ make run-console
+```

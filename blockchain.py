@@ -76,6 +76,13 @@ class Blockchain:
         """
         self.__chain = val
 
+    @property
+    def chain_length(self) -> int:
+        """
+        Return the length of the current chain
+        """
+        return len(self.__chain)
+
     def add_block_to_chain(self, block: Block) -> None:
         """
         Adds the current block to the chain. By this time, it has been fully verified and
@@ -190,7 +197,7 @@ class Blockchain:
         ]
         tx_sender.append(open_tx_sender)
 
-        logger.debug(tx_sender)
+        logger.debug("Sender's transactions on the chain: %s", tx_sender)
 
         amount_sent = reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)

@@ -1,6 +1,8 @@
 flask==1.1.1
 PyCryptodome
 pydantic
+PyQt5
+PyQtWebEngine
 requests
 tinyec
 web3

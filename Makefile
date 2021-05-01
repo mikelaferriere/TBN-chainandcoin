@@ -22,5 +22,8 @@ install-pre-commit:
 run-node:
 	python blockchain_node.py
 
+run-console:
+	python console.py
+
 .PHONY: \
 	help
