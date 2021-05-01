@@ -1,3 +1,4 @@
+import logging
 import getpass
 import json
 from uuid import uuid4
@@ -5,7 +6,10 @@ from uuid import uuid4
 from blockchain import Blockchain
 from verification import Verification
 from transaction import Transaction
+from utils import configure_logging
 from walletv2 import Wallet
+
+configure_logging()
 
 
 class Node:
@@ -69,29 +73,29 @@ class Node:
                     signature=signature,
                 )
                 if self.blockchain.add_transaction(transaction):
-                    print("Added transaction!")
+                    logging.info("Added transaction!")
                 else:
-                    print("Transaction failed!")
+                    logging.error("Transaction failed!")
                 print(self.blockchain.get_open_transactions)
             elif user_choice == "2":
                 if not self.blockchain.mine_block():
-                    print("Mining failed. Got no wallet?")
+                    logging.error("Mining failed. Got no wallet?")
             elif user_choice == "3":
                 self.print_blockchain_elements()
             elif user_choice == "4":
                 if Verification.verify_transactions(
                     self.blockchain.get_open_transactions, self.blockchain.get_balance
                 ):
-                    print("All transactions are valid")
+                    logging.info("All transactions are valid")
                 else:
-                    print("There are invalid transactions")
+                    logging.error("There are invalid transactions")
             elif user_choice == "q":
                 waiting_for_input = False
             else:
-                print("Input was invalid, please pick a value from the list!")
+                logging.warning("Input was invalid, please pick a value from the list!")
             if not Verification.verify_chain(self.blockchain.chain):
                 self.print_blockchain_elements()
-                print("Invalid blockchain!")
+                logging.error("Invalid blockchain!")
                 # Break out of the loop
                 break
             print(
@@ -100,14 +104,14 @@ class Node:
                 )
             )
         else:
-            print("User left!")
+            logging.info("User left!")
 
-        print("Done!")
+        logging.info("Done!")
 
 
 if __name__ == "__main__":
     node = Node()
-    print("Load wallet")
+    logging.info("Load wallet")
     passphrase = getpass.getpass()
     node.wallet.login(passphrase)
 
@@ -130,13 +134,13 @@ if __name__ == "__main__":
     print("2: Run with local blockchain")
     choice = node.get_user_choice()
     if choice == "1":
-        print("Connecting to MASTERNODE")
+        logging.info("Connecting to MASTERNODE")
         node.blockchain.register_node("https://sedrik.life/blockchain")
 
-        print("Syncing with the network")
+        logging.info("Syncing with the network")
         node.blockchain.resolve_conflicts()
 
-        print("Synced with the network")
+        logging.info("Synced with the network")
 
     print(f"Wallet {node.wallet.address}")
     print("Balance: {:6.2f}".format(node.blockchain.get_balance()))  # type: ignore

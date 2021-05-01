@@ -1,3 +1,4 @@
+import logging
 import hashlib
 import json
 
@@ -6,6 +7,8 @@ from typing import Callable, List
 from block import Block
 from transaction import Transaction
 from walletv2 import Wallet
+
+logger = logging.getLogger(__name__)
 
 
 def hash_bytes_256(b: bytes) -> str:
@@ -58,7 +61,7 @@ class Verification:
             if index == 0:
                 continue
             if block.previous_hash != cls.hash_block(blockchain[index - 1]):
-                print(
+                logger.error(
                     "Previous block hashed not equal to previous hash stored in current block"
                 )
                 return False
@@ -70,7 +73,7 @@ class Verification:
             if not cls.valid_proof(
                 block.proof, block_transactions_sans_mining, block.previous_hash, 4
             ):
-                print("Proof of work is invalid")
+                logger.error("Proof of work is invalid")
                 return False
         return True
 
