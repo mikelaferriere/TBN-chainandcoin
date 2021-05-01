@@ -74,6 +74,13 @@ class Blockchain:
         """
         self.__chain = val
 
+    @property
+    def chain_length(self) -> int:
+        """
+        Return the length of the current chain
+        """
+        return len(self.__chain)
+
     def add_block_to_chain(self, block: Block) -> None:
         """
         Adds the current block to the chain. By this time, it has been fully verified and
