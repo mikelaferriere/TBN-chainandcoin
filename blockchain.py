@@ -9,6 +9,7 @@ from uuid import UUID
 
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+import logging
 import json
 import requests
 
@@ -17,6 +18,7 @@ from transaction import Transaction
 from verification import Verification
 from walletv2 import Wallet
 
+logger = logging.getLogger(__name__)
 
 MINING_REWARD = 10
 
@@ -130,7 +132,9 @@ class Blockchain:
                     },
                 )
                 if response.status_code == 400 or response.status_code == 500:
-                    print(f"Transaction declined, needs resolving: {response.json()}")
+                    logger.error(
+                        "Transaction declined, needs resolving: %s", response.json()
+                    )
             except requests.exceptions.ConnectionError:
                 continue
 
@@ -150,7 +154,7 @@ class Blockchain:
                     url, json={"block": json.dumps(block.to_ordered_dict())}
                 )
                 if response.status_code == 400 or response.status_code == 500:
-                    print(f"Block declined, needs resolving: {response.json()}")
+                    logger.error("Block declined, needs resolving: %s", response.json())
             except requests.exceptions.ConnectionError:
                 continue
 
@@ -186,7 +190,7 @@ class Blockchain:
         ]
         tx_sender.append(open_tx_sender)
 
-        print(tx_sender)
+        logger.debug(tx_sender)
 
         amount_sent = reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
@@ -357,7 +361,7 @@ class Blockchain:
                     try:
                         self.__open_transactions.remove(opentx)
                     except ValueError:
-                        print("Item was already removed")
+                        logger.warning("Item was already removed: %s", opentx)
         return True, "success"
 
     def register_node(self, address: str) -> None:
