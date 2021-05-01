@@ -1,7 +1,5 @@
 import logging
-import random
 import sys
-import time
 import json
 
 from uuid import uuid4
@@ -18,17 +16,15 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QPushButton,
     QScrollArea,
-    QStatusBar,
-    QTextEdit,
-    QToolButton,
-    QVBoxLayout,
     QWidget,
 )
 
 from blockchain import Blockchain
 from transaction import Transaction
-from verification import Verification
 from walletv2 import Wallet
+
+logging.basicConfig(level=logging.INFO)
+
 
 # 1. Subclass QRunnable
 class Register(QRunnable):
@@ -42,6 +38,7 @@ class Register(QRunnable):
         self.statusBar().showMessage("Registering to masternode....")
         self.blockchain.register_node("https://sedrik.life/blockchain")
         self.statusBar().showMessage("Registered")
+
 
 # 1. Subclass QRunnable
 class Sync(QRunnable):
@@ -59,7 +56,10 @@ class Sync(QRunnable):
         self.statusBar().showMessage(
             f"Synced {self.blockchain.chain_length} blocks with masternode"
         )
-        self.label.setText(f"Address: {self.wallet.address}\nBalance: {self.blockchain.get_balance()}")
+        self.label.setText(
+            f"Address: {self.wallet.address}\nBalance: {self.blockchain.get_balance()}"
+        )
+
 
 # 1. Subclass QRunnable
 class MineBlock(QRunnable):
@@ -79,24 +79,23 @@ class MineBlock(QRunnable):
                 self.wallet.address, self.blockchain.get_balance()
             )
         )
-        self.statusBar().showMessage(
-            f"Block Mined!"
-        )
+        self.statusBar().showMessage("Block Mined!")
+
 
 class TransactionWidget(QWidget):
     def __init__(self, parent):
-        super(TransactionWidget, self).__init__(parent)
+        super().__init__(parent)
         self.parent = self.parent()
         self.blockchain = self.parent.blockchain
         self.wallet = self.parent.wallet
-        
+
         self.recipient = QLineEdit()
         self.amount = QLineEdit()
-        self.button = QPushButton('Submit Transaction')
+        self.button = QPushButton("Submit Transaction")
         self.button.clicked.connect(self.submit_transaction)
 
         layout = QGridLayout()
-        
+
         layout.addWidget(QLabel("Recipient: "), 1, 0)
         layout.addWidget(self.recipient, 1, 1)
         layout.addWidget(QLabel("Amount: "), 2, 0)
@@ -107,9 +106,7 @@ class TransactionWidget(QWidget):
 
     def submit_transaction(self):
         signature = self.wallet.sign_transaction(
-            self.wallet.address,
-            self.recipient.text(),
-            self.amount.text()
+            self.wallet.address, self.recipient.text(), self.amount.text()
         )
         transaction = Transaction(
             sender=self.wallet.address,
@@ -118,14 +115,15 @@ class TransactionWidget(QWidget):
             signature=signature,
         )
         if self.blockchain.add_transaction(transaction):
-            print("Added transaction!")
+            logging.info("Added transaction!")
             self.deleteLater()
         else:
-            print("Transaction failed!")
+            logging.info("Transaction failed!")
+
 
 class WalletWidget(QWidget):
     def __init__(self, parent, action):
-        super(WalletWidget, self).__init__(parent)
+        super().__init__(parent)
         self.parent = self.parent()
         self.node_id = self.parent.node_id
         self.action = action
@@ -153,20 +151,25 @@ class WalletWidget(QWidget):
             result = self.parent.wallet.login(self.password.textValue())
 
         if result:
-            self.parent.blockchain = Blockchain(self.parent.wallet.address, self.node_id)
+            self.parent.blockchain = Blockchain(
+                self.parent.wallet.address, self.node_id
+            )
             self.parent.registerNode()
             self.parent.syncNode()
         self.deleteLater()
 
-class Window(QMainWindow):
+
+class Window(
+    QMainWindow
+):  # pylint: disable=too-many-instance-attributes,too-many-locals,too-many-statements
     def __init__(self):
-        super(Window, self).__init__()
+        super().__init__()
         self.node_id = str(uuid4())
         self.blockchain = Blockchain("", self.node_id)
         self.wallet = Wallet()
         self.threadCount = QThreadPool.globalInstance().maxThreadCount()
         self.pool = QThreadPool.globalInstance()
-        
+
         self.setupUi()
         self.registerNode()
         self.syncNode()
@@ -181,89 +184,85 @@ class Window(QMainWindow):
         """
         Setup the menu bar
         """
-        exitAction = QAction(QIcon('exit.png'), '&Exit', self)        
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit application')
+        exitAction = QAction(QIcon("exit.png"), "&Exit", self)
+        exitAction.setShortcut("Ctrl+Q")
+        exitAction.setStatusTip("Exit application")
         exitAction.triggered.connect(app.quit)
 
         menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
+        fileMenu = menubar.addMenu("&File")
         fileMenu.addAction(exitAction)
 
-        walletActionCreate = QAction('&Create', self)
-        walletActionCreate.setStatusTip('Create new wallet')
-        walletActionCreate.triggered.connect(
-            lambda: self.__add_wallet_widget("create")
-        )
-        
-        walletActionLogin = QAction('&Login', self)
-        walletActionLogin.setStatusTip('Login to wallet')
-        walletActionLogin.triggered.connect(
-            lambda: self.__add_wallet_widget("login")
-        )
+        walletActionCreate = QAction("&Create", self)
+        walletActionCreate.setStatusTip("Create new wallet")
+        walletActionCreate.triggered.connect(lambda: self.__add_wallet_widget("create"))
 
-        walletActionLogout = QAction('&Logout', self)
-        walletActionLogout.setStatusTip('Logout of wallet')
-        walletActionLogout.triggered.connect(
-            lambda: self.__add_wallet_widget("logout")
-        )
-        
-        walletMenu = menubar.addMenu('&Wallet')
+        walletActionLogin = QAction("&Login", self)
+        walletActionLogin.setStatusTip("Login to wallet")
+        walletActionLogin.triggered.connect(lambda: self.__add_wallet_widget("login"))
+
+        walletActionLogout = QAction("&Logout", self)
+        walletActionLogout.setStatusTip("Logout of wallet")
+        walletActionLogout.triggered.connect(lambda: self.__add_wallet_widget("logout"))
+
+        walletMenu = menubar.addMenu("&Wallet")
         walletMenu.addAction(walletActionCreate)
         walletMenu.addAction(walletActionLogin)
         walletMenu.addAction(walletActionLogout)
 
-        chainActionRegister = QAction('&Register', self)
-        chainActionRegister.setStatusTip('Register node to blockchain')
+        chainActionRegister = QAction("&Register", self)
+        chainActionRegister.setStatusTip("Register node to blockchain")
         chainActionRegister.triggered.connect(self.registerNode)
 
-        chainActionSync = QAction('&Sync', self)
-        chainActionSync.setStatusTip('Sync node to blockchain')
+        chainActionSync = QAction("&Sync", self)
+        chainActionSync.setStatusTip("Sync node to blockchain")
         chainActionSync.triggered.connect(self.syncNode)
 
-        chainActionShow = QAction('&Show chain', self)
-        chainActionShow.setStatusTip('Show blockchain')
+        chainActionShow = QAction("&Show chain", self)
+        chainActionShow.setStatusTip("Show blockchain")
         chainActionShow.triggered.connect(
             lambda: self.mainDisplay.setText(
                 json.dumps(self.blockchain.pretty_chain(), indent=2)
             )
         )
 
-        chainActionClear = QAction('&Clear', self)
-        chainActionClear.setStatusTip('Clear visible blockchain')
-        chainActionClear.triggered.connect(
-            lambda: self.mainDisplay.setText("")
-        )
+        chainActionClear = QAction("&Clear", self)
+        chainActionClear.setStatusTip("Clear visible blockchain")
+        chainActionClear.triggered.connect(lambda: self.mainDisplay.setText(""))
 
-        chainMenu = menubar.addMenu('&Chain')
+        chainMenu = menubar.addMenu("&Chain")
         chainMenu.addAction(chainActionRegister)
         chainMenu.addAction(chainActionSync)
         chainMenu.addAction(chainActionShow)
         chainMenu.addAction(chainActionClear)
 
-        transactionNew = QAction('&New', self)
-        transactionNew.setStatusTip('Create new transaction')
+        transactionNew = QAction("&New", self)
+        transactionNew.setStatusTip("Create new transaction")
         transactionNew.triggered.connect(self.__add_transaction_widget)
 
-        transactionPending = QAction('&Pending', self)
-        transactionPending.setStatusTip('View pending transaction(s)')
+        transactionPending = QAction("&Pending", self)
+        transactionPending.setStatusTip("View pending transaction(s)")
         transactionPending.triggered.connect(
             lambda: self.mainDisplay.setText(
                 json.dumps(
-                    [t.to_ordered_dict()
-                     for t in self.blockchain.get_open_transactions], indent=2)
+                    [
+                        t.to_ordered_dict()
+                        for t in self.blockchain.get_open_transactions
+                    ],
+                    indent=2,
+                )
             )
         )
 
-        transactionMenu = menubar.addMenu('&Transaction')
+        transactionMenu = menubar.addMenu("&Transaction")
         transactionMenu.addAction(transactionNew)
         transactionMenu.addAction(transactionPending)
 
-        mineNewBlock = QAction('&Mine', self)
-        mineNewBlock.setStatusTip('Mine a new block')
+        mineNewBlock = QAction("&Mine", self)
+        mineNewBlock.setStatusTip("Mine a new block")
         mineNewBlock.triggered.connect(self.mineBlock)
 
-        mineMenu = menubar.addMenu('&Mining')
+        mineMenu = menubar.addMenu("&Mining")
         mineMenu.addAction(mineNewBlock)
 
     def setupUi(self):
@@ -299,7 +298,7 @@ class Window(QMainWindow):
         self.setCentralWidget(self.scroll)
 
         self.setWindowTitle("To Be Named Coin")
-        self.setGeometry(1300,1000,1300,1000)
+        self.setGeometry(1300, 1000, 1300, 1000)
 
     def registerNode(self):
         # 2. Instantiate the subclass of QRunnable
@@ -315,16 +314,12 @@ class Window(QMainWindow):
 
     def mineBlock(self):
         # 2. Instantiate the subclass of QRunnable
-        runnable = MineBlock(
-            self.blockchain,
-            self.wallet,
-            self.statusBar,
-            self.label
-        )
+        runnable = MineBlock(self.blockchain, self.wallet, self.statusBar, self.label)
         # 3. Call start()
         self.pool.start(runnable)
-        
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = Window()
     window.show()
