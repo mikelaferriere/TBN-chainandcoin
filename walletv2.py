@@ -1,3 +1,4 @@
+import logging
 import binascii
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 
 from transaction import Transaction
+
+logger = logging.getLogger(__name__)
 
 
 class Wallet:
@@ -80,9 +83,9 @@ class Wallet:
                     self.encrypted_private_key, passphrase=passphrase
                 )
         except (IOError, IndexError):
-            print("Creating login for wallet failed...")
+            logger.error("Creating login for wallet failed...")
         except ValueError as e:
-            print(e)
+            logger.exception(e)
 
         address = self.generate_address()
         self.save_address(address)
@@ -109,9 +112,9 @@ class Wallet:
                     self.private_key.public_key().export_key(format="DER")
                 ).decode("ascii")
         except (IOError, IndexError):
-            print("Retreiving keys from wallet failed...")
+            logger.error("Retreiving keys from wallet failed...")
         except ValueError:
-            print("Invalid Password. Try Again")
+            logger.warning("Invalid Password. Try Again")
 
         self.set_is_logged_in()
         self.retreive_address()
@@ -128,7 +131,7 @@ class Wallet:
                 self.address = f.read()
                 return self.address
         except (IOError, IndexError):
-            print("Retreiving address failed...")
+            logger.error("Retreiving address failed...")
         return None
 
     @staticmethod
@@ -142,7 +145,7 @@ class Wallet:
             with open(path / ".address", mode="w") as f:
                 f.write(address)
         except (IOError, IndexError):
-            print("Saving address failed...")
+            logger.error("Saving address failed...")
 
     def generate_address(self) -> str:
         """
@@ -165,7 +168,7 @@ class Wallet:
         RSA is a cryptography algorithm
         binascii.hexlify is used to convert binary data to hexadecimal representation
         """
-        print("Signing transaction")
+        logger.info("Signing transaction")
         if self.private_key is None:
             raise ValueError("Unable to sign transaction without a private key")
         signer = pkcs1_15.new(self.private_key)
@@ -180,7 +183,7 @@ class Wallet:
         verified because the contents of the transaction can never change. Any change in the
         transaction, will be a sign of nefarious actions.
         """
-        print("Verifying transaction")
+        logger.info("Verifying transaction")
         verifier = pkcs1_15.new(RSA.importKey(binascii.unhexlify(transaction.sender)))
         h = SHA256.new(
             (
@@ -195,5 +198,5 @@ class Wallet:
             verifier.verify(h, binascii.unhexlify(transaction.signature))
             return True
         except (ValueError, TypeError) as e:
-            print(e)
+            logger.exception(e)
             return False

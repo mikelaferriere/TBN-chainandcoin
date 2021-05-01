@@ -1,5 +1,8 @@
+import logging
 import getpass
 from walletv2 import Wallet
+
+logging.basicConfig(level=logging.INFO)
 
 
 class WalletNode:

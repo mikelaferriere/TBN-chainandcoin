@@ -1,6 +1,7 @@
 """
 API to interact with the blockchain.
 """
+import logging
 import getpass
 import os
 import json
@@ -13,6 +14,8 @@ from blockchain import Blockchain
 from transaction import Transaction
 from walletv2 import Wallet
 
+
+logging.basicConfig(level=logging.INFO)
 
 # Instantiate the node
 app = Flask(__name__)
@@ -250,11 +253,11 @@ if __name__ == "__main__":
         raise ValueError("Unabled to initialize blockchain")
 
     if not IS_MASTERNODE:
-        print("Connecting to MASTERNODE")
+        logging.info("Connecting to MASTERNODE")
         blockchain.register_node("https://sedrik.life/blockchain")
 
-        print("Syncing with the network")
+        logging.info("Syncing with the network")
         blockchain.resolve_conflicts()
 
-        print("Synced with the network")
+        logging.info("Synced with the network")
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")))
