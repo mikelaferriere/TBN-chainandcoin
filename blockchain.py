@@ -197,7 +197,7 @@ class Blockchain:
         ]
         tx_sender.append(open_tx_sender)
 
-        logger.debug(tx_sender)
+        logger.debug("Sender's transactions on the chain: %s", tx_sender)
 
         amount_sent = reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)

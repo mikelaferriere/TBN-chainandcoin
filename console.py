@@ -2,6 +2,8 @@ import logging
 import sys
 import json
 
+from typing import Any
+
 from uuid import uuid4
 
 from PyQt5.QtCore import QRunnable, Qt, QThreadPool
@@ -21,9 +23,10 @@ from PyQt5.QtWidgets import (
 
 from blockchain import Blockchain
 from transaction import Transaction
+from utils import configure_logging
 from walletv2 import Wallet
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 
 
 # 1. Subclass QRunnable
@@ -124,7 +127,7 @@ class TransactionWidget(QWidget):
 class WalletWidget(QWidget):
     def __init__(self, parent, action):
         super().__init__(parent)
-        self.parent = self.parent()
+        self.parent = self.parent()  # type: Any
         self.node_id = self.parent.node_id
         self.action = action
 
@@ -187,7 +190,7 @@ class Window(
         exitAction = QAction(QIcon("exit.png"), "&Exit", self)
         exitAction.setShortcut("Ctrl+Q")
         exitAction.setStatusTip("Exit application")
-        exitAction.triggered.connect(app.quit)
+        exitAction.triggered.connect(app.quit)  # type: ignore
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu("&File")
@@ -195,15 +198,21 @@ class Window(
 
         walletActionCreate = QAction("&Create", self)
         walletActionCreate.setStatusTip("Create new wallet")
-        walletActionCreate.triggered.connect(lambda: self.__add_wallet_widget("create"))
+        walletActionCreate.triggered.connect(  # type: ignore
+            lambda: self.__add_wallet_widget("create")
+        )
 
         walletActionLogin = QAction("&Login", self)
         walletActionLogin.setStatusTip("Login to wallet")
-        walletActionLogin.triggered.connect(lambda: self.__add_wallet_widget("login"))
+        walletActionCreate.triggered.connect(  # type: ignore
+            lambda: self.__add_wallet_widget("login")
+        )
 
         walletActionLogout = QAction("&Logout", self)
         walletActionLogout.setStatusTip("Logout of wallet")
-        walletActionLogout.triggered.connect(lambda: self.__add_wallet_widget("logout"))
+        walletActionCreate.triggered.connect(  # type: ignore
+            lambda: self.__add_wallet_widget("logout")
+        )
 
         walletMenu = menubar.addMenu("&Wallet")
         walletMenu.addAction(walletActionCreate)
@@ -212,15 +221,15 @@ class Window(
 
         chainActionRegister = QAction("&Register", self)
         chainActionRegister.setStatusTip("Register node to blockchain")
-        chainActionRegister.triggered.connect(self.registerNode)
+        chainActionRegister.triggered.connect(self.registerNode)  # type: ignore
 
         chainActionSync = QAction("&Sync", self)
         chainActionSync.setStatusTip("Sync node to blockchain")
-        chainActionSync.triggered.connect(self.syncNode)
+        chainActionSync.triggered.connect(self.syncNode)  # type: ignore
 
         chainActionShow = QAction("&Show chain", self)
         chainActionShow.setStatusTip("Show blockchain")
-        chainActionShow.triggered.connect(
+        chainActionShow.triggered.connect(  # type: ignore
             lambda: self.mainDisplay.setText(
                 json.dumps(self.blockchain.pretty_chain(), indent=2)
             )
@@ -228,7 +237,9 @@ class Window(
 
         chainActionClear = QAction("&Clear", self)
         chainActionClear.setStatusTip("Clear visible blockchain")
-        chainActionClear.triggered.connect(lambda: self.mainDisplay.setText(""))
+        chainActionClear.triggered.connect(  # type: ignore
+            lambda: self.mainDisplay.setText("")
+        )
 
         chainMenu = menubar.addMenu("&Chain")
         chainMenu.addAction(chainActionRegister)
@@ -238,11 +249,11 @@ class Window(
 
         transactionNew = QAction("&New", self)
         transactionNew.setStatusTip("Create new transaction")
-        transactionNew.triggered.connect(self.__add_transaction_widget)
+        transactionNew.triggered.connect(self.__add_transaction_widget)  # type: ignore
 
         transactionPending = QAction("&Pending", self)
         transactionPending.setStatusTip("View pending transaction(s)")
-        transactionPending.triggered.connect(
+        transactionPending.triggered.connect(  # type: ignore
             lambda: self.mainDisplay.setText(
                 json.dumps(
                     [
@@ -260,7 +271,7 @@ class Window(
 
         mineNewBlock = QAction("&Mine", self)
         mineNewBlock.setStatusTip("Mine a new block")
-        mineNewBlock.triggered.connect(self.mineBlock)
+        mineNewBlock.triggered.connect(self.mineBlock)  # type: ignore
 
         mineMenu = menubar.addMenu("&Mining")
         mineMenu.addAction(mineNewBlock)
