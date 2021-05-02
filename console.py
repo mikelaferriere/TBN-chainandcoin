@@ -1,12 +1,11 @@
 import logging
 import sys
 import json
-
-from typing import Any
+import traceback
 
 from uuid import uuid4
 
-from PyQt5.QtCore import QRunnable, Qt, QThreadPool
+from PyQt5.QtCore import QObject, QRunnable, Qt, QThreadPool, pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QAction,
@@ -23,143 +22,61 @@ from PyQt5.QtWidgets import (
 
 from blockchain import Blockchain
 from transaction import Transaction
-from utils import configure_logging
+from util.logging0 import configure_logging
 from walletv2 import Wallet
 
 configure_logging()
 
 
-# 1. Subclass QRunnable
-class Register(QRunnable):
-    def __init__(self, blockchain, statusBar):
+class WorkerSignals(QObject):
+    """
+    Defines the signals available from a running worker thread.
+    Supported signals are:
+    - finished: No data
+    - error:`tuple` (exctype, value, traceback.format_exc() )
+    - result: `object` data returned from processing, anything
+    - progress: `tuple` indicating progress metadata
+    """
+
+    finished = pyqtSignal()
+    error = pyqtSignal(tuple)
+    result = pyqtSignal(object)
+    progress = pyqtSignal(tuple)
+
+
+class Worker(QRunnable):
+    """
+    Worker thread
+    Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
+    """
+
+    def __init__(self, fn, *args, **kwargs):
         super().__init__()
-        self.blockchain = blockchain
-        self.statusBar = statusBar
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
 
+        # Add the callback to our kwargs
+        self.kwargs["progress_callback"] = self.signals.progress
+
+    @pyqtSlot()
     def run(self):
-        # Your long-running task goes here ...
-        self.statusBar().showMessage("Registering to masternode....")
-        self.blockchain.register_node("https://sedrik.life/blockchain")
-        self.statusBar().showMessage("Registered")
-
-
-# 1. Subclass QRunnable
-class Sync(QRunnable):
-    def __init__(self, blockchain, wallet, label, statusBar):
-        super().__init__()
-        self.blockchain = blockchain
-        self.wallet = wallet
-        self.statusBar = statusBar
-        self.label = label
-
-    def run(self):
-        # Your long-running task goes here ...
-        self.statusBar().showMessage("Syncing with masternode....")
-        self.blockchain.resolve_conflicts()
-        self.statusBar().showMessage(
-            f"Synced {self.blockchain.chain_length} blocks with masternode"
-        )
-        self.label.setText(
-            f"Address: {self.wallet.address}\nBalance: {self.blockchain.get_balance()}"
-        )
-
-
-# 1. Subclass QRunnable
-class MineBlock(QRunnable):
-    def __init__(self, blockchain, wallet, statusBar, label):
-        super().__init__()
-        self.blockchain = blockchain
-        self.wallet = wallet
-        self.statusBar = statusBar
-        self.label = label
-
-    def run(self):
-        # Your long-running task goes here ...
-        self.statusBar().showMessage("Mining new block....")
-        self.blockchain.mine_block()
-        self.label.setText(
-            "Address: {}\nBalance: {}".format(
-                self.wallet.address, self.blockchain.get_balance()
-            )
-        )
-        self.statusBar().showMessage("Block Mined!")
-
-
-class TransactionWidget(QWidget):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = self.parent()
-        self.blockchain = self.parent.blockchain
-        self.wallet = self.parent.wallet
-
-        self.recipient = QLineEdit()
-        self.amount = QLineEdit()
-        self.button = QPushButton("Submit Transaction")
-        self.button.clicked.connect(self.submit_transaction)
-
-        layout = QGridLayout()
-
-        layout.addWidget(QLabel("Recipient: "), 1, 0)
-        layout.addWidget(self.recipient, 1, 1)
-        layout.addWidget(QLabel("Amount: "), 2, 0)
-        layout.addWidget(self.amount, 2, 1)
-        layout.addWidget(self.button, 3, 0)
-        self.setLayout(layout)
-        self.setFixedWidth(self.parent.width())
-
-    def submit_transaction(self):
-        signature = self.wallet.sign_transaction(
-            self.wallet.address, self.recipient.text(), self.amount.text()
-        )
-        transaction = Transaction(
-            sender=self.wallet.address,
-            recipient=self.recipient.text(),
-            amount=self.amount.text(),
-            signature=signature,
-        )
-        if self.blockchain.add_transaction(transaction):
-            logging.info("Added transaction!")
-            self.deleteLater()
+        """
+        Initialise the runner function with passed args, kwargs.
+        """
+        # Retrieve args/kwargs here; and fire processing using them
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+        except Exception:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
         else:
-            logging.info("Transaction failed!")
-
-
-class WalletWidget(QWidget):
-    def __init__(self, parent, action):
-        super().__init__(parent)
-        self.parent = self.parent()  # type: Any
-        self.node_id = self.parent.node_id
-        self.action = action
-
-        layout = QGridLayout()
-
-        if self.action == "logout":
-            self.parent.wallet = Wallet()
-            self.parent.label.setText("")
-            self.deleteLater()
-
-        self.password = QInputDialog()
-        self.password.setTextEchoMode(2)
-        self.password.accepted.connect(self.wallet_action)
-
-        layout.addWidget(self.password, 1, 0)
-        self.setLayout(layout)
-        self.setFixedWidth(self.parent.width())
-
-    def wallet_action(self) -> None:
-        result = False
-        if self.action == "create":
-            result = self.parent.wallet.create_login(self.password.textValue())
-        elif self.action == "login":
-            result = self.parent.wallet.login(self.password.textValue())
-
-        if result:
-            self.parent.blockchain = Blockchain(
-                self.parent.wallet.address, self.node_id
-            )
-            self.parent.registerNode()
-            self.parent.syncNode()
-        self.deleteLater()
+            self.signals.result.emit(result)  # Return the result of the processing
+        finally:
+            self.signals.finished.emit()  # Done
 
 
 class Window(
@@ -168,20 +85,26 @@ class Window(
     def __init__(self):
         super().__init__()
         self.node_id = str(uuid4())
-        self.blockchain = Blockchain("", self.node_id)
         self.wallet = Wallet()
+        self.blockchain = Blockchain(self.wallet.address, self.node_id)
         self.threadCount = QThreadPool.globalInstance().maxThreadCount()
         self.pool = QThreadPool.globalInstance()
 
+        self.setWindowTitle("To Be Named Coin")
+        self.setGeometry(1300, 1000, 1300, 1000)
+
         self.setupUi()
-        self.registerNode()
-        self.syncNode()
+        self.registerAndSyncNode()
 
-    def __add_wallet_widget(self, action) -> None:
-        self.grid.addWidget(WalletWidget(self, action))
-
-    def __add_transaction_widget(self) -> None:
-        self.grid.addWidget(TransactionWidget(self))
+    def format_label(self) -> None:
+        balance = (
+            0.0
+            if self.blockchain.get_balance() is None
+            else self.blockchain.get_balance()
+        )
+        self.label.setText(
+            "Address: {}\nBalance: {:6.2f}".format(self.wallet.address, balance)
+        )
 
     def configure_menu_bar(self) -> None:
         """
@@ -199,19 +122,19 @@ class Window(
         walletActionCreate = QAction("&Create", self)
         walletActionCreate.setStatusTip("Create new wallet")
         walletActionCreate.triggered.connect(  # type: ignore
-            lambda: self.__add_wallet_widget("create")
+            lambda: self.setupWalletUi("create")
         )
 
         walletActionLogin = QAction("&Login", self)
         walletActionLogin.setStatusTip("Login to wallet")
-        walletActionCreate.triggered.connect(  # type: ignore
-            lambda: self.__add_wallet_widget("login")
+        walletActionLogin.triggered.connect(  # type: ignore
+            lambda: self.setupWalletUi("login")
         )
 
         walletActionLogout = QAction("&Logout", self)
         walletActionLogout.setStatusTip("Logout of wallet")
-        walletActionCreate.triggered.connect(  # type: ignore
-            lambda: self.__add_wallet_widget("logout")
+        walletActionLogout.triggered.connect(  # type: ignore
+            lambda: self.setupWalletUi("logout")
         )
 
         walletMenu = menubar.addMenu("&Wallet")
@@ -219,13 +142,9 @@ class Window(
         walletMenu.addAction(walletActionLogin)
         walletMenu.addAction(walletActionLogout)
 
-        chainActionRegister = QAction("&Register", self)
-        chainActionRegister.setStatusTip("Register node to blockchain")
-        chainActionRegister.triggered.connect(self.registerNode)  # type: ignore
-
-        chainActionSync = QAction("&Sync", self)
-        chainActionSync.setStatusTip("Sync node to blockchain")
-        chainActionSync.triggered.connect(self.syncNode)  # type: ignore
+        chainActionRegister = QAction("&Register and sync", self)
+        chainActionRegister.setStatusTip("Register and sync node to blockchain")
+        chainActionRegister.triggered.connect(self.registerAndSyncNode)  # type: ignore
 
         chainActionShow = QAction("&Show chain", self)
         chainActionShow.setStatusTip("Show blockchain")
@@ -243,13 +162,12 @@ class Window(
 
         chainMenu = menubar.addMenu("&Chain")
         chainMenu.addAction(chainActionRegister)
-        chainMenu.addAction(chainActionSync)
         chainMenu.addAction(chainActionShow)
         chainMenu.addAction(chainActionClear)
 
         transactionNew = QAction("&New", self)
         transactionNew.setStatusTip("Create new transaction")
-        transactionNew.triggered.connect(self.__add_transaction_widget)  # type: ignore
+        transactionNew.triggered.connect(self.setupTransactionUi)  # type: ignore
 
         transactionPending = QAction("&Pending", self)
         transactionPending.setStatusTip("View pending transaction(s)")
@@ -296,9 +214,8 @@ class Window(
         self.mainDisplay.setAlignment(Qt.AlignVCenter)
         self.grid.addWidget(self.mainDisplay, 2, 0)
 
-        self.configure_menu_bar()
-
         self.widget.setLayout(self.grid)
+        self.widget.setFixedWidth(self.width())
 
         # Scroll Area Properties (Since our wallet addresses are so long right now)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -307,27 +224,137 @@ class Window(
         self.scroll.setWidget(self.widget)
 
         self.setCentralWidget(self.scroll)
+        self.configure_menu_bar()
 
-        self.setWindowTitle("To Be Named Coin")
-        self.setGeometry(1300, 1000, 1300, 1000)
+    def setupWalletUi(self, action) -> None:
+        walletLayout = QGridLayout()
+        password = QInputDialog()
 
-    def registerNode(self):
-        # 2. Instantiate the subclass of QRunnable
-        runnable = Register(self.blockchain, self.statusBar)
-        # 3. Call start()
-        self.pool.start(runnable)
+        def refresh_chain() -> None:
+            self.blockchain = Blockchain(self.wallet.address, self.node_id)
+            self.registerAndSyncNode()
+            self.format_label()
 
-    def syncNode(self):
-        # 2. Instantiate the subclass of QRunnable
-        runnable = Sync(self.blockchain, self.wallet, self.label, self.statusBar)
-        # 3. Call start()
-        self.pool.start(runnable)
+        def login() -> None:
+            if self.wallet.login(password.textValue()):
+                refresh_chain()
+
+        def create() -> None:
+            if self.wallet.create_login(password.textValue()):
+                refresh_chain()
+
+        if action == "logout":
+            self.wallet = Wallet()
+            refresh_chain()
+        else:
+            password.setTextEchoMode(QLineEdit.Password)
+            if action == "create":
+                password.accepted.connect(create)  # type: ignore
+            elif action == "login":
+                password.accepted.connect(login)  # type: ignore
+
+            walletLayout.addWidget(password, 1, 0)
+            self.grid.addLayout(walletLayout, 2, 0)
+
+    def setupTransactionUi(self) -> None:
+        transactionLayout = QGridLayout()
+        recipientLabel = QLabel("Recipient: ")
+        recipient = QLineEdit()
+        amountLabel = QLabel("Amount: ")
+        amount = QLineEdit()
+        submit = QPushButton("Submit Transaction")
+
+        def submit_transaction():
+            signature = self.wallet.sign_transaction(
+                self.wallet.address, recipient.text(), amount.text()
+            )
+            transaction = Transaction(
+                sender=self.wallet.address,
+                recipient=recipient.text(),
+                amount=amount.text(),
+                signature=signature,
+            )
+
+            if self.blockchain.add_transaction(transaction):
+                logging.info("Added transaction!")
+                # Theres got to be a better way to handle these Widgets...
+                recipient.deleteLater()
+                recipientLabel.deleteLater()
+                amount.deleteLater()
+                amountLabel.deleteLater()
+                submit.deleteLater()
+            else:
+                logging.info("Transaction failed!")
+
+        submit.clicked.connect(submit_transaction)  # type: ignore
+
+        transactionLayout.addWidget(recipientLabel, 1, 0)
+        transactionLayout.addWidget(recipient, 1, 1)
+        transactionLayout.addWidget(amountLabel, 2, 0)
+        transactionLayout.addWidget(amount, 2, 1)
+        transactionLayout.addWidget(submit, 3, 0)
+        self.grid.addLayout(transactionLayout, 3, 0)
+
+    def registerAndSyncNode(self):
+        def log_result(s):
+            self.statusBar().showMessage(s)
+
+        def finished():
+            self.format_label()
+
+        def progress(progress):
+            progress, message = progress
+            logging.debug("%d%% done %s", progress, message)
+
+        def register(progress_callback):
+            logging.info("Registering to masternode....")
+            progress_callback.emit((25, "Registering to masternode"))
+            self.blockchain.register_node("https://sedrik.life/blockchain")
+            progress_callback.emit((50, "Registered to masternode"))
+            logging.info("Syncing with masternode....")
+            progress_callback.emit((75, "Syncing to masternode..."))
+            self.blockchain.resolve_conflicts()
+            progress_callback.emit(
+                (100, f"Synced {self.blockchain.chain_length} blocks with masternode")
+            )
+
+        # Pass the function to execute
+        worker = Worker(
+            register
+        )  # Any other args, kwargs are passed to the run function
+        worker.signals.result.connect(log_result)
+        worker.signals.finished.connect(finished)
+        worker.signals.progress.connect(progress)
+        # Execute
+        self.pool.start(worker)
 
     def mineBlock(self):
-        # 2. Instantiate the subclass of QRunnable
-        runnable = MineBlock(self.blockchain, self.wallet, self.statusBar, self.label)
-        # 3. Call start()
-        self.pool.start(runnable)
+        def log_result(s):
+            self.statusBar().showMessage(s)
+
+        def finished():
+            self.format_label()
+            logging.info("Finished")
+
+        def progress(progress):
+            progress, message = progress
+            logging.debug("%d%% done %s", progress, message)
+
+        def register(progress_callback):
+            logging.info("Mining new Block...")
+            progress_callback.emit((50, "Mining new block..."))
+            self.blockchain.mine_block()
+            progress_callback.emit((100, "Block Mined!"))
+
+        # Pass the function to execute
+        worker = Worker(
+            register
+        )  # Any other args, kwargs are passed to the run function
+        worker.signals.result.connect(log_result)
+        worker.signals.finished.connect(finished)
+        worker.signals.progress.connect(progress)
+        # Execute
+        self.pool.start(worker)
 
 
 if __name__ == "__main__":
