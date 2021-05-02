@@ -6,7 +6,7 @@ from uuid import uuid4
 from blockchain import Blockchain
 from verification import Verification
 from transaction import Transaction
-from utils import configure_logging
+from util.logging0 import configure_logging
 from walletv2 import Wallet
 
 configure_logging()

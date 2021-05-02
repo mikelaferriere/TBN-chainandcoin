@@ -21,12 +21,14 @@ class Wallet:
     """
 
     def __init__(self, test: bool = False) -> None:
+        logger.debug("Initializing wallet")
         self.encrypted_private_key = None  # type: Optional[bytes]
         self.public_key = None  # type: Optional[str]
         self.private_key = None  # type: Optional[RSA.RsaKey]
         self.logged_in = False
         self.address = None  # type: Optional[str]
         if test:
+            logger.debug("Initializing TEST wallet")
             self.__generate_keys("test")
             if not self.encrypted_private_key:
                 raise ValueError("Encrypted private key must exist")
@@ -36,18 +38,24 @@ class Wallet:
             self.address = self.public_key
             self.set_is_logged_in()
 
-    def set_is_logged_in(self) -> None:
+    def set_is_logged_in(self) -> bool:
         """
         If the public and private keys have been generated, or unlocked via a password login,
         then the wallet is logged in.
         """
-        self.logged_in = self.public_key is not None and self.private_key is not None
+        logged_in = self.public_key is not None and self.private_key is not None
+        message = "Successfully logged in" if logged_in else "Failed to login"
+        logger.debug(message)
+        self.logged_in = logged_in
+
+        return logged_in
 
     def __generate_keys(self, passphrase: str) -> None:
         """
         Private function to generate RSA private and public keys using a provided passphrase.
         The keys are then converted to HEX, to be more human readable.
         """
+        logger.debug("Generating new keys")
         key = RSA.generate(2048)
         encrypted_key = key.export_key(
             passphrase=passphrase,
@@ -60,6 +68,7 @@ class Wallet:
         self.public_key = binascii.hexlify(
             key.public_key().export_key(format="DER")
         ).decode("ascii")
+        logger.debug("Successfully generated new keys")
 
     def create_login(self, passphrase: str) -> bool:
         """
@@ -101,6 +110,9 @@ class Wallet:
 
         The wallet address is also retreived from the local save.
         """
+        if self.logged_in:
+            logger.debug("Already logged in. No need to log in again")
+            return True
         try:
             path = Path("wallet")
             path.mkdir(exist_ok=True)
@@ -113,8 +125,12 @@ class Wallet:
                 ).decode("ascii")
         except (IOError, IndexError):
             logger.error("Retreiving keys from wallet failed...")
+            self.public_key = None
+            self.private_key = None
         except ValueError:
             logger.warning("Invalid Password. Try Again")
+            self.public_key = None
+            self.private_key = None
 
         self.set_is_logged_in()
         self.retreive_address()
@@ -124,11 +140,19 @@ class Wallet:
         """
         Retreive the address from the local saved location
         """
+        if self.address is not None:
+            logger.debug("Wallet address already generated")
+            return self.address
+
+        path = Path("wallet")
+        path.mkdir(exist_ok=True)
+        path = path / ".address"
+        logger.debug("Retreiving address from %s", path)
+
         try:
-            path = Path("wallet")
-            path.mkdir(exist_ok=True)
-            with open(path / ".address", mode="r") as f:
+            with open(path, mode="r") as f:
                 self.address = f.read()
+                logger.debug("Address retreived")
                 return self.address
         except (IOError, IndexError):
             logger.error("Retreiving address failed...")
@@ -139,11 +163,14 @@ class Wallet:
         """
         Save a given address to the local saved location
         """
+        path = Path("wallet")
+        path.mkdir(exist_ok=True)
+        path = path / ".address"
+        logger.debug("Saving address to %s", path)
         try:
-            path = Path("wallet")
-            path.mkdir(exist_ok=True)
-            with open(path / ".address", mode="w") as f:
+            with open(path, mode="w") as f:
                 f.write(address)
+            logger.debug("Address saved")
         except (IOError, IndexError):
             logger.error("Saving address failed...")
 
@@ -152,6 +179,7 @@ class Wallet:
         Generate a random wallet address. Currently, this is a static value identical to the
         public key
         """
+        logger.info("Generating wallet address")
         if not self.public_key:
             raise ValueError(
                 "Not able to create an address if no public key has been configured"
@@ -170,11 +198,15 @@ class Wallet:
         """
         logger.info("Signing transaction")
         if self.private_key is None:
-            raise ValueError("Unable to sign transaction without a private key")
+            message = "Unable to sign transaction without a private key"
+            logger.error(message)
+            raise ValueError(message)
         signer = pkcs1_15.new(self.private_key)
         h = SHA256.new((str(sender) + str(recipient) + str(amount)).encode("utf8"))
         signature = signer.sign(h)
-        return binascii.hexlify(signature).decode("ascii")
+        hex_sig = binascii.hexlify(signature).decode("ascii")
+        logger.debug("Transaction signed successfully")
+        return hex_sig
 
     @staticmethod
     def verify_transaction(transaction: Transaction) -> bool:
@@ -196,6 +228,7 @@ class Wallet:
             if transaction.signature is None:
                 raise ValueError("Transaction signature is None")
             verifier.verify(h, binascii.unhexlify(transaction.signature))
+            logger.debug("Transaction verified")
             return True
         except (ValueError, TypeError) as e:
             logger.exception(e)

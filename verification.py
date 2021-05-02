@@ -40,7 +40,6 @@ class Verification:
         :param difficulty: <int> Difficulty of the proof of work
         :return: <bool> True if correct, False if not
         """
-
         guess = (
             str([tx.to_ordered_dict() for tx in transactions])
             + str(previous_hash)
@@ -60,6 +59,11 @@ class Verification:
         for (index, block) in enumerate(blockchain):
             if index == 0:
                 continue
+            logger.debug(
+                "Checking index %s's previous hash with the block hash of index %s",
+                index,
+                index - 1,
+            )
             if block.previous_hash != cls.hash_block(blockchain[index - 1]):
                 logger.error(
                     "Previous block hashed not equal to previous hash stored in current block"
@@ -70,11 +74,17 @@ class Verification:
             # including the mining transaction, so we need to exclude it in order to get a
             # valid proof
             block_transactions_sans_mining = block.transactions[:-1]
+
+            logger.debug(
+                "Checking the Block hash for index %s is correct with the proof attached",
+                index,
+            )
             if not cls.valid_proof(
                 block.proof, block_transactions_sans_mining, block.previous_hash, 4
             ):
                 logger.error("Proof of work is invalid")
                 return False
+        logger.info("Chain is valid")
         return True
 
     @staticmethod
@@ -92,6 +102,9 @@ class Verification:
         for the given transaction
         """
         if check_funds:
+            logger.debug(
+                "Checking the sender's balance can cover the amount being transferred"
+            )
             sender_balance = get_balance(transaction.sender)
             return sender_balance >= transaction.amount and Wallet.verify_transaction(
                 transaction
