@@ -51,7 +51,7 @@ class Blockchain:
             index=0,
             timestamp=0,
             transactions=[],
-            proof=100,
+            nonce=100,
             previous_hash="",
         )
 
@@ -255,29 +255,40 @@ class Blockchain:
     def proof_of_work(self, difficulty: int) -> int:
         """
         Simple Proof of Work Algorithm
-          - Find a number 'p' such that hash(pp') contains leading 4 zeros,
+          - Find a number 'p' such that hash(pp') contains leading {difficulty} zeros,
             where p is the previous p'
-          - p is the previous proof, and p' is the new proof
+          - p is the previous nonce, and p' is the new nonce
+
+        Essentially what is happening here is:
+         1. Grab the last block on the chain
+         2. Hash the last block
+         3. Starting with 0, and incrementing infinitely, find a SHA256 value for the
+             - open transactions
+             - previous hash
+             - nonce (incrementing number starting from 0 used in the mining process)
+            where the result of the hash contains the {difficulty} number of leading 0's.
+            I.E. If the difficulty is 4, then a valid nonce will only be found when the SHA256
+                 hash contains 4 leading 0's.
         :param difficulty: <int>
         :return: <int>
         """
         last_block = self.last_block
         previous_hash = Verification.hash_block(last_block)
 
-        proof = 0
-        while not Verification.valid_proof(
-            proof, self.get_open_transactions, previous_hash, difficulty
+        nonce = 0
+        while not Verification.valid_nonce(
+            nonce, self.get_open_transactions, previous_hash, difficulty
         ):
-            proof += 1
+            nonce += 1
 
-        return proof
+        return nonce
 
     def mine_block(self, difficulty: Optional[int] = None) -> Optional[Block]:
         """
         The current node runs the mining protocol, and depending on the difficulty, this
         could take a lot of processing power.
 
-        Once the proof is discovered, or "mined", the reward transaction is created.
+        Once the nonce is discovered, or "mined", the reward transaction is created.
 
         Then all of the open transactions are validated and verified, ensuring that
         the senders in all of the transactions have enough coin to conduct the transaction.
@@ -301,8 +312,8 @@ class Blockchain:
         # Hash the last Block so we can compare it to the stored value
         previous_hash = Verification.hash_block(last_block)
 
-        # We run the PoW algorithm to get the next proof
-        proof = self.proof_of_work(difficulty)
+        # We run the PoW algorithm to get the next nonce
+        nonce = self.proof_of_work(difficulty)
 
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
@@ -323,7 +334,7 @@ class Blockchain:
             index=self.next_index,
             timestamp=time(),
             transactions=copied_open_transactions,
-            proof=proof,
+            nonce=nonce,
             previous_hash=previous_hash,
         )
 
@@ -346,16 +357,18 @@ class Blockchain:
         that match a transaction in the broadcasted block. This is some safety to ensure that
         there is not double spending.
         """
-        if not Verification.valid_proof(
-            block.proof, block.transactions[:-1], block.previous_hash, 4
+        if not Verification.valid_nonce(
+            block.nonce, block.transactions[:-1], block.previous_hash, 4
         ):
-            return False, "Proof is not valid"
+            return False, "Nonce is not valid"
         if not Verification.hash_block(self.last_block) == block.previous_hash:
             return (
                 False,
                 "Hash of last block does not equal previous hash in the current block",
             )
         self.add_block_to_chain(block)
+
+        # Alway work off a copy as to not disrupt the current list of open transactions
         stored_transactions = self.__open_transactions[:]
         for itx in block.transactions:
             for opentx in stored_transactions:

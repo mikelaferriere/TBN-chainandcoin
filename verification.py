@@ -29,12 +29,12 @@ class Verification:
         return hash_bytes_256(json.dumps(hashable_block, sort_keys=True).encode())
 
     @staticmethod
-    def valid_proof(
-        proof: int, transactions: List[Transaction], previous_hash: str, difficulty: int
+    def valid_nonce(
+        nonce: int, transactions: List[Transaction], previous_hash: str, difficulty: int
     ) -> bool:
         """
-        Validates the Proof: Does the hash(proof, block) contain <difficulty> leading zeros?
-        :param proof: <int> Current Proof
+        Validates the Nonce: Does the hash(nonce, block) contain <difficulty> leading zeros?
+        :param nonce: <int> Current Nonce
         :param transactions: List<Transaction> List of transactions in the block
         :param previous_hash: <str> hash of the previous block
         :param difficulty: <int> Difficulty of the proof of work
@@ -43,7 +43,7 @@ class Verification:
         guess = (
             str([tx.to_ordered_dict() for tx in transactions])
             + str(previous_hash)
-            + str(proof)
+            + str(nonce)
         ).encode()
         guess_hash = hash_bytes_256(guess)
         return guess_hash[:difficulty] == "0" * difficulty
@@ -70,17 +70,17 @@ class Verification:
                 )
                 return False
             # We know that a correct block always includes the mining transaction
-            # as the last transaction in the block. We also did not create the inital proof
+            # as the last transaction in the block. We also did not create the inital nonce
             # including the mining transaction, so we need to exclude it in order to get a
-            # valid proof
+            # valid nonce
             block_transactions_sans_mining = block.transactions[:-1]
 
             logger.debug(
-                "Checking the Block hash for index %s is correct with the proof attached",
+                "Checking the Block hash for index %s is correct with the nonce attached",
                 index,
             )
-            if not cls.valid_proof(
-                block.proof, block_transactions_sans_mining, block.previous_hash, 4
+            if not cls.valid_nonce(
+                block.nonce, block_transactions_sans_mining, block.previous_hash, 4
             ):
                 logger.error("Proof of work is invalid")
                 return False
