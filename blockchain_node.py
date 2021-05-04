@@ -29,6 +29,48 @@ w = Wallet()
 blockchain = None
 
 
+@app.route("/mine", methods=["POST"])
+def mine():
+    values = request.get_json()
+
+    # Check for required fields
+    required = ["miner_address"]
+    if not all(k in values for k in required):
+        return "Missing values", 400
+
+    blockchain.mine_block(values["miner_address"])
+
+    response = {
+        "message": "New Block Forged",
+        "block": blockchain.last_block.to_ordered_dict(),
+    }
+
+    return jsonify(response), 200
+
+
+@app.route("/transactions/new", methods=["POST"])
+def new_transaction():
+    values = request.get_json()
+
+    # Check for required fields
+    required = ["sender", "recipient", "amount", "signature"]
+    if not all(k in values for k in required):
+        return "Missing values", 400
+
+    # Create a new Transaction
+    index = blockchain.add_transaction(
+        Transaction(
+            sender=values["sender"],
+            recipient=values["recipient"],
+            amount=values["amount"],
+            signature=values["signature"],
+        )
+    )
+
+    response = {"message": f"Transaction will be added to Block {index}"}
+    return jsonify(response), 201
+
+
 @app.route("/transactions/pending", methods=["GET"])
 def pending_transaction():
     """
@@ -249,6 +291,7 @@ if __name__ == "__main__":
         address = w.address
 
     blockchain = Blockchain(address, node_id)
+
     if not blockchain:
         raise ValueError("Unabled to initialize blockchain")
 

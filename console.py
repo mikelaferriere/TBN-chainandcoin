@@ -227,6 +227,8 @@ class Window(
         self.configure_menu_bar()
 
     def setupWalletUi(self, action) -> None:
+        self.mainDisplay.setText("")
+
         walletLayout = QGridLayout()
         password = QInputDialog()
 
@@ -257,6 +259,8 @@ class Window(
             self.grid.addLayout(walletLayout, 2, 0)
 
     def setupTransactionUi(self) -> None:
+        self.mainDisplay.setText("")
+
         transactionLayout = QGridLayout()
         recipientLabel = QLabel("Recipient: ")
         recipient = QLineEdit()
