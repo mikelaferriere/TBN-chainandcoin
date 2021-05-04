@@ -16,6 +16,7 @@ class Block(BaseModel):
     nonce : <int> The number used in mining
     previous_hash: <str> The hash of the block with [index - 1] (it's immediate ancestor)
     """
+
     index: int
     timestamp: datetime
     transactions: List[Transaction]

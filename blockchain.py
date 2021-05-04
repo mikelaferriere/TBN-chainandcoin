@@ -283,7 +283,9 @@ class Blockchain:
 
         return nonce
 
-    def mine_block(self, difficulty: Optional[int] = None) -> Optional[Block]:
+    def mine_block(
+        self, address: Optional[str] = None, difficulty: Optional[int] = None
+    ) -> Optional[Block]:
         """
         The current node runs the mining protocol, and depending on the difficulty, this
         could take a lot of processing power.
@@ -302,7 +304,10 @@ class Blockchain:
 
         Finally, the new block is broadcasted to all connected nodes.
         """
-        if not self.address:
+        if not address:
+            address = self.address
+
+        if not address:
             return None
 
         difficulty = difficulty if difficulty is not None else self.difficulty
@@ -318,7 +323,7 @@ class Blockchain:
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
         reward_transaction = Transaction(
-            sender="0", recipient=self.address, amount=MINING_REWARD
+            sender="0", recipient=address, amount=MINING_REWARD
         )
 
         # Copy transactions instead of manipulating the original open_transactions list
