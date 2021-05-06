@@ -53,7 +53,7 @@ def new_transaction():
     values = request.get_json()
 
     # Check for required fields
-    required = ["sender", "recipient", "amount", "signature"]
+    required = ["sender", "recipient", "amount", "nonce", "signature"]
     if not all(k in values for k in required):
         return "Missing values", 400
 
@@ -63,6 +63,7 @@ def new_transaction():
             sender=values["sender"],
             recipient=values["recipient"],
             amount=values["amount"],
+            nonce=values["nonce"],
             signature=values["signature"],
         )
     )
@@ -235,6 +236,7 @@ def broadcast_transaction():
       sender : str
       recipient : str
       amount : float
+      nonce : int
       signature : str
 
     Returns application/json
@@ -248,7 +250,7 @@ def broadcast_transaction():
     if not values:
         response = {"message": "No data found."}
         return jsonify(response), 400
-    required = ["sender", "recipient", "amount", "signature"]
+    required = ["sender", "recipient", "amount", "nonce", "signature"]
     if not all(key in values for key in required):
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
@@ -257,6 +259,7 @@ def broadcast_transaction():
             sender=values["sender"],
             recipient=values["recipient"],
             amount=values["amount"],
+            nonce=values["nonce"],
             signature=values["signature"],
         ),
         is_receiving=True,

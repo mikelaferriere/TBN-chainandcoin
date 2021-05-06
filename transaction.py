@@ -7,6 +7,7 @@ class Transaction(BaseModel):
     sender: str
     recipient: str
     amount: float
+    nonce: int
     signature: Optional[str] = None
 
     def to_ordered_dict(self) -> Dict:
@@ -19,6 +20,7 @@ class Transaction(BaseModel):
                     ("sender", self.sender),
                     ("recipient", self.recipient),
                     ("amount", self.amount),
+                    ("nonce", self.nonce),
                     ("signature", self.signature),
                 ]
             )

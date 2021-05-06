@@ -135,6 +135,7 @@ class Blockchain:
                         "sender": transaction.sender,
                         "recipient": transaction.recipient,
                         "amount": transaction.amount,
+                        "nonce": transaction.nonce,
                         "signature": transaction.signature,
                     },
                 )
@@ -252,37 +253,6 @@ class Blockchain:
             )
         return self.last_block.index + 1
 
-    def proof_of_work(self, difficulty: int) -> int:
-        """
-        Simple Proof of Work Algorithm
-          - Find a number 'p' such that hash(pp') contains leading {difficulty} zeros,
-            where p is the previous p'
-          - p is the previous nonce, and p' is the new nonce
-
-        Essentially what is happening here is:
-         1. Grab the last block on the chain
-         2. Hash the last block
-         3. Starting with 0, and incrementing infinitely, find a SHA256 value for the
-             - open transactions
-             - previous hash
-             - nonce (incrementing number starting from 0 used in the mining process)
-            where the result of the hash contains the {difficulty} number of leading 0's.
-            I.E. If the difficulty is 4, then a valid nonce will only be found when the SHA256
-                 hash contains 4 leading 0's.
-        :param difficulty: <int>
-        :return: <int>
-        """
-        last_block = self.last_block
-        previous_hash = Verification.hash_block(last_block)
-
-        nonce = 0
-        while not Verification.valid_nonce(
-            nonce, self.get_open_transactions, previous_hash, difficulty
-        ):
-            nonce += 1
-
-        return nonce
-
     def mine_block(
         self, address: Optional[str] = None, difficulty: Optional[int] = None
     ) -> Optional[Block]:
@@ -318,7 +288,7 @@ class Blockchain:
         previous_hash = Verification.hash_block(last_block)
 
         # We run the PoW algorithm to get the next nonce
-        nonce = self.proof_of_work(difficulty)
+        nonce = Verification.proof_of_work(last_block, self.get_open_transactions, difficulty)
 
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
@@ -373,7 +343,7 @@ class Blockchain:
             )
         self.add_block_to_chain(block)
 
-        # Alway work off a copy as to not disrupt the current list of open transactions
+        # Always work off a copy as to not disrupt the current list of open transactions
         stored_transactions = self.__open_transactions[:]
         for itx in block.transactions:
             for opentx in stored_transactions:

@@ -27,7 +27,7 @@ class Verification:
         """
         hashable_block = block.to_ordered_dict()
         return hash_bytes_256(json.dumps(hashable_block, sort_keys=True).encode())
-
+    
     @staticmethod
     def valid_nonce(
         nonce: int, transactions: List[Transaction], previous_hash: str, difficulty: int
@@ -47,6 +47,41 @@ class Verification:
         ).encode()
         guess_hash = hash_bytes_256(guess)
         return guess_hash[:difficulty] == "0" * difficulty
+
+    @staticmethod
+    def proof_of_work(
+        last_block: Block, open_transactions: List[Transaction], difficulty: int
+    ) -> int:
+        """
+        Simple Proof of Work Algorithm
+          - Find a number 'p' such that hash(pp') contains leading {difficulty} zeros,
+            where p is the previous p'
+          - p is the previous nonce, and p' is the new nonce
+
+        Essentially what is happening here is:
+         1. Grab the last block on the chain
+         2. Hash the last block
+         3. Starting with 0, and incrementing infinitely, find a SHA256 value for the
+             - open transactions
+             - previous hash
+             - nonce (incrementing number starting from 0 used in the mining process)
+            where the result of the hash contains the {difficulty} number of leading 0's.
+            I.E. If the difficulty is 4, then a valid nonce will only be found when the SHA256
+                 hash contains 4 leading 0's.
+        :param last_block: <Block>
+        :param open_transactions: List[Transaction]
+        :param difficulty: <int>
+        :return: <int>
+        """
+        previous_hash = Verification.hash_block(last_block)
+
+        nonce = 0
+        while not Verification.valid_nonce(
+            nonce, open_transactions, previous_hash, difficulty
+        ):
+            nonce += 1
+
+        return nonce
 
     @classmethod
     def verify_chain(cls, blockchain: List[Block]) -> bool:
@@ -106,9 +141,7 @@ class Verification:
                 "Checking the sender's balance can cover the amount being transferred"
             )
             sender_balance = get_balance(transaction.sender)
-            return sender_balance >= transaction.amount and Wallet.verify_transaction(
-                transaction
-            )
+            return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)
         return Wallet.verify_transaction(transaction)
 
     @classmethod

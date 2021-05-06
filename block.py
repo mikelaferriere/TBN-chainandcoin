@@ -70,6 +70,7 @@ class Block(BaseModel):
                     sender=tx["sender"],
                     recipient=tx["recipient"],
                     signature=tx["signature"],
+                    nonce=tx["nonce"],
                     amount=tx["amount"],
                 )
                 for tx in block_dict["transactions"]
