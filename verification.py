@@ -1,6 +1,7 @@
 import logging
 import hashlib
 import json
+import binascii
 
 from typing import Callable, List
 

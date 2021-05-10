@@ -1,7 +1,10 @@
+import base64
 from collections import OrderedDict
 from typing import Dict, Optional
 from pydantic import BaseModel
 
+import rlp
+import binascii
 
 class Transaction(BaseModel):
     sender: str
@@ -25,3 +28,23 @@ class Transaction(BaseModel):
                 ]
             )
         )
+
+    def generate_tx_hash(self) -> str:
+        args = [
+            str(self.nonce).encode('ascii'),
+            str("break").encode("ascii"),
+            self.sender.encode('ascii'),
+            str("break").encode("ascii"),
+            self.recipient.encode('ascii'),
+            str("break").encode("ascii"),
+            str(self.amount).encode('ascii'),
+            str("break").encode("ascii"),
+        ]
+        if self.signature is not None:
+            args.append(self.signature)
+        return rlp.rlp_encode(args)
+
+    @staticmethod
+    def unwrap_tx_hash(hash: bytes):
+        decoded_rlp = rlp.rlp_decode(hash)
+        return decoded_rlp

@@ -293,7 +293,7 @@ class Blockchain:
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
         reward_transaction = Transaction(
-            sender="0", recipient=address, amount=MINING_REWARD
+            sender="0", recipient=address, nonce=0, amount=MINING_REWARD
         )
 
         # Copy transactions instead of manipulating the original open_transactions list

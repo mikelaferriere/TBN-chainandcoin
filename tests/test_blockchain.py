@@ -28,10 +28,10 @@ def test_mining_block_with_open_transactions():
 
     chain = Blockchain(w1.address, node_id)
 
-    transaction_1 = Transaction(sender=w1.address, recipient=w2.address, amount=0.5)
+    transaction_1 = Transaction(sender=w1.address, recipient=w2.address, nonce=0, amount=0.5)
     transaction_1.signature = w1.sign_transaction(w1.address, w2.address, 0.5)
 
-    transaction_2 = Transaction(sender=w2.address, recipient=w1.address, amount=0.5)
+    transaction_2 = Transaction(sender=w2.address, recipient=w1.address, nonce=0, amount=0.5)
     transaction_2.signature = w2.sign_transaction(w2.address, w1.address, 0.5)
 
     assert Verification.verify_chain(chain.chain)
@@ -59,7 +59,7 @@ def test_not_enough_coin():
     node_id = uuid4()
     w = Wallet(test=True)
     chain = Blockchain(w.address, node_id)
-    transaction = Transaction(sender=w.address, recipient="test", amount=0.5)
+    transaction = Transaction(sender=w.address, recipient="test", nonce=0, amount=0.5)
     transaction.signature = w.sign_transaction(w.address, "test", 0.5)
 
     assert Verification.verify_chain(chain.chain)
