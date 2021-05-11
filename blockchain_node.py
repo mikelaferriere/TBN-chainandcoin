@@ -8,9 +8,9 @@ import os
 from uuid import uuid4
 from flask import Flask, jsonify, request
 
-from block_pb2 import Block  # type: ignore
 from blockchain import Blockchain
-from transaction_pb2 import Transaction  # type: ignore
+from generated.block_pb2 import Block  # type: ignore
+from generated.transaction_pb2 import Transaction  # type: ignore
 from walletv2 import Wallet
 
 
@@ -131,6 +131,7 @@ def block_by_hash(block_hash):
         "index": block.index,
         "nonce": block.nonce,
         "previous_hash": block.previous_hash,
+        "transaction_count": len(block.transactions),
         "transactions": [t.SerializeToString().hex() for t in block.transactions],
     }
     return jsonify(response), 200

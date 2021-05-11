@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+import "generated/transaction.proto";
+
+package block;
+
+message Block {
+  int32 index = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  int32 transaction_count = 3;
+  repeated transaction.Transaction transactions = 4;
+  int32 nonce = 5;
+  string previous_hash = 6;
+}

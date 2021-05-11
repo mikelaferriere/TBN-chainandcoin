@@ -1,4 +1,4 @@
-from transaction_pb2 import Transaction  # type: ignore
+from generated.transaction_pb2 import Transaction  # type: ignore
 from walletv2 import Wallet
 
 

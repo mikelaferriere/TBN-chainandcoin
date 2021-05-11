@@ -2,13 +2,11 @@ import logging
 import binascii
 from pathlib import Path
 
-from typing import Optional
+from typing import Any, Optional
 
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
-
-from transaction_pb2 import Transaction  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +207,7 @@ class Wallet:
         return hex_sig
 
     @staticmethod
-    def verify_transaction(transaction: Transaction) -> bool:
+    def verify_transaction(transaction: Any) -> bool:
         """
         Verify signature of transaction. A transaction's signature must always be able to be
         verified because the contents of the transaction can never change. Any change in the
