@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (
 from blockchain import Blockchain
 from generated.transaction_pb2 import Transaction  # type: ignore
 from util.logging0 import configure_logging
-from walletv3 import Wallet
+from wallet import Wallet
 
 configure_logging()
 

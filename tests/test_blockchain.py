@@ -3,7 +3,7 @@ from uuid import uuid4
 from blockchain import Blockchain
 from generated.transaction_pb2 import Transaction  # type: ignore
 from verification import Verification
-from walletv3 import Wallet
+from wallet import Wallet
 
 
 def test_blockchain_constructor():

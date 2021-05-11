@@ -1,7 +1,7 @@
 import ecdsa
 
 from generated.transaction_pb2 import Transaction  # type: ignore
-from walletv3 import Wallet
+from wallet import Wallet
 
 
 def test_transaction_to_protobuf_and_back():

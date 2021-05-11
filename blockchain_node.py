@@ -11,7 +11,7 @@ from flask import Flask, jsonify, request
 from blockchain import Blockchain
 from generated.block_pb2 import Block  # type: ignore
 from generated.transaction_pb2 import Transaction  # type: ignore
-from walletv3 import Wallet
+from wallet import Wallet
 
 
 logging.basicConfig(level=logging.INFO)

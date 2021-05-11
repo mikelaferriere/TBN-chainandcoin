@@ -3,7 +3,7 @@ import hashlib
 
 from typing import Any, Callable, List
 
-from walletv3 import Wallet
+from wallet import Wallet
 
 logger = logging.getLogger(__name__)
 
