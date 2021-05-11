@@ -286,10 +286,7 @@ def broadcast_transaction():
 
     Parameters
     -----
-      sender : str
-      recipient : str
-      amount : float
-      signature : str
+      transaction : Transaction as hex
 
     Returns application/json
     -----

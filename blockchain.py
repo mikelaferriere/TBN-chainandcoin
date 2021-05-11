@@ -305,7 +305,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
         reward_transaction = Transaction(
-            sender="0", recipient=address, amount=MINING_REWARD
+            sender="0", recipient=address, nonce=0, amount=MINING_REWARD
         )
 
         # Copy transactions instead of manipulating the original open_transactions list
@@ -358,7 +358,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             )
         self.add_block_to_chain(block)
 
-        # Alway work off a copy as to not disrupt the current list of open transactions
+        # Always work off a copy as to not disrupt the current list of open transactions
         stored_transactions = self.__open_transactions[:]
         for itx in block.transactions:
             for opentx in stored_transactions:
