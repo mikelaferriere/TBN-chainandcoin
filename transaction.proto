@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package transaction;
+
+message Transaction {
+  optional string sender = 1;
+  optional string recipient = 2;
+  optional float amount = 3;
+  optional string signature = 4;
+}

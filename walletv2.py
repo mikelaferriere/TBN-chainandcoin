@@ -8,7 +8,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 
-from transaction import Transaction
+from transaction_pb2 import Transaction  # type: ignore
 
 logger = logging.getLogger(__name__)
 

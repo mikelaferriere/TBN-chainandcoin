@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from blockchain import Blockchain
-from transaction import Transaction
+from transaction_pb2 import Transaction  # type: ignore
 from verification import Verification
 from walletv2 import Wallet
 
@@ -58,9 +58,10 @@ def test_mining_block_with_open_transactions():
 def test_not_enough_coin():
     node_id = uuid4()
     w = Wallet(test=True)
+    w2 = Wallet(test=True)
     chain = Blockchain(w.address, node_id)
-    transaction = Transaction(sender=w.address, recipient="test", amount=0.5)
-    transaction.signature = w.sign_transaction(w.address, "test", 0.5)
+    transaction = Transaction(sender=w.address, recipient=w2.address, amount=0.5)
+    transaction.signature = w.sign_transaction(w.address, w2.address, 0.5)
 
     assert Verification.verify_chain(chain.chain)
     try:

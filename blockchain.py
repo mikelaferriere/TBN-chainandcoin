@@ -3,18 +3,18 @@ The blockchain (Really need to add a better description of what this is)
 """
 from functools import reduce
 
-from time import time
 from urllib.parse import urlparse
 from uuid import UUID
 
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import logging
-import json
 import requests
 
-from block import Block
-from transaction import Transaction
+from google.protobuf.timestamp_pb2 import Timestamp
+
+from block_pb2 import Block  # type: ignore
+from transaction_pb2 import Transaction  # type: ignore
 from verification import Verification
 from walletv2 import Wallet
 
@@ -49,7 +49,7 @@ class Blockchain:
         # Create the 'genesis' block. This is the inital block.
         genesis_block = Block(
             index=0,
-            timestamp=0,
+            timestamp=Timestamp().GetCurrentTime(),  # type: ignore
             transactions=[],
             nonce=100,
             previous_hash="",
@@ -117,7 +117,7 @@ class Blockchain:
         :return: <str>
         """
 
-        return [c.to_ordered_dict() for c in self.chain]
+        return [c.SerializeToString().hex() for c in self.chain]
 
     def __broadcast_transaction(self, transaction: Transaction) -> None:
         """
@@ -131,12 +131,7 @@ class Blockchain:
             try:
                 response = requests.post(
                     url,
-                    json={
-                        "sender": transaction.sender,
-                        "recipient": transaction.recipient,
-                        "amount": transaction.amount,
-                        "signature": transaction.signature,
-                    },
+                    json={"transaction": transaction.SerializeToString().hex()},
                 )
                 if response.status_code == 400 or response.status_code == 500:
                     logger.error(
@@ -158,7 +153,7 @@ class Blockchain:
             url = f"{node}/broadcast-block"
             try:
                 response = requests.post(
-                    url, json={"block": json.dumps(block.to_ordered_dict())}
+                    url, json={"block": block.SerializeToString().hex()}
                 )
                 if response.status_code == 400 or response.status_code == 500:
                     logger.error("Block declined, needs resolving: %s", response.json())
@@ -188,16 +183,18 @@ class Blockchain:
             for block in self.chain
         ]
 
+        logger.debug("Sender's sent tx on the chain: %s", tx_sender)
+
         # Fetch a list of all sent coin amounts for the given person
         # (empty lists are returned if the person was NOT the sender)
         #
-        # This fetches sent amounts of open transactions (to avoid double spending)
+        # This fetches sent amounts of open transactions
         open_tx_sender = [
             tx.amount for tx in self.get_open_transactions if tx.sender == participant
         ]
         tx_sender.append(open_tx_sender)
 
-        logger.debug("Sender's transactions on the chain: %s", tx_sender)
+        logger.debug("Sender's sent tx in open transactions: %s", tx_sender)
 
         amount_sent = reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
@@ -206,6 +203,8 @@ class Blockchain:
             tx_sender,
             0.0,
         )
+
+        logger.debug("Sender's total sent: %s", amount_sent)
 
         # This fetches received coin amounts of transactions that were already included
         # in blocks of the blockchain
@@ -216,6 +215,9 @@ class Blockchain:
             [tx.amount for tx in block.transactions if tx.recipient == participant]
             for block in self.chain
         ]
+
+        logger.debug("Sender's received tx on the chain: %s", tx_recipient)
+
         amount_received = reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
             if len(tx_amt) > 0.0
@@ -223,6 +225,10 @@ class Blockchain:
             tx_recipient,
             0.0,
         )
+
+        logger.debug("Sender's total received: %s", amount_received)
+        logger.debug("Sender's balance: %s", (amount_received - amount_sent))
+
         # Return the total balance
         return amount_received - amount_sent
 
@@ -250,6 +256,7 @@ class Blockchain:
                 "transaction. We may want to change this to not raise "
                 "an exception later, but for now, we should break."
             )
+
         return self.last_block.index + 1
 
     def proof_of_work(self, difficulty: int) -> int:
@@ -337,7 +344,7 @@ class Blockchain:
         copied_open_transactions.append(reward_transaction)
         block = Block(
             index=self.next_index,
-            timestamp=time(),
+            timestamp=Timestamp().GetCurrentTime(),  # type: ignore
             transactions=copied_open_transactions,
             nonce=nonce,
             previous_hash=previous_hash,
@@ -421,17 +428,21 @@ class Blockchain:
 
             if response.ok:
                 length = response.json()["length"]
-                chain_dict = response.json()["chain"]
+                chain_hashes = response.json()["chain"]
 
-                chain = [
-                    Block.generate_from_dict(block_dict) for block_dict in chain_dict
-                ]
+                chain = []
+
+                for b in chain_hashes:
+                    block = Block()
+                    block.ParseFromString(bytes.fromhex(b))
+                    chain.append(block)
 
                 # Check if the length is longer and the chain is valid
                 if length > max_length and Verification.verify_chain(chain):
                     max_length = length
                     new_chain = chain
 
+        logger.info(new_chain)
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
             self.chain = new_chain

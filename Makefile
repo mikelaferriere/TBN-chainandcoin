@@ -4,6 +4,8 @@ SHELL := /bin/bash -e -o pipefail
 help:
 	cat README.md
 
+linux-deps:
+	sudo snap install protobuf --classic
 pip-test:
 	python3 -m pip install --upgrade pip
 	python3 -m pip install -r requirements-test.txt
