@@ -276,6 +276,7 @@ class Window(
                 sender=self.wallet.address,
                 recipient=recipient.text(),
                 amount=float(amount.text()),
+                nonce=self.wallet.nonce,
                 signature=signature,
             )
 

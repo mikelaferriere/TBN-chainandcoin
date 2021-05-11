@@ -25,6 +25,8 @@ class Wallet:
         self.private_key = None  # type: Optional[RSA.RsaKey]
         self.logged_in = False
         self.address = None  # type: Optional[str]
+        self.nonce = 0
+
         if test:
             logger.debug("Initializing TEST wallet")
             self.__generate_keys("test")
