@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (
 from blockchain import Blockchain
 from generated.transaction_pb2 import Transaction  # type: ignore
 from util.logging0 import configure_logging
-from walletv2 import Wallet
+from walletv3 import Wallet
 
 configure_logging()
 
@@ -175,7 +175,13 @@ class Window(
             lambda: self.mainDisplay.setText(
                 json.dumps(
                     [
-                        t.to_ordered_dict()
+                        {
+                            "sender": t.sender,
+                            "recipient": t.recipient,
+                            "amount": t.amount,
+                            "nonce": t.nonce,
+                            "signature": t.signature,
+                        }
                         for t in self.blockchain.get_open_transactions
                     ],
                     indent=2,
@@ -269,16 +275,14 @@ class Window(
         submit = QPushButton("Submit Transaction")
 
         def submit_transaction():
-            signature = self.wallet.sign_transaction(
-                self.wallet.address, recipient.text(), amount.text()
-            )
             transaction = Transaction(
                 sender=self.wallet.address,
                 recipient=recipient.text(),
                 amount=float(amount.text()),
                 nonce=self.wallet.nonce,
-                signature=signature,
+                public_key=self.wallet.public_key.hex(),
             )
+            transaction.signature = self.wallet.sign_transaction(transaction)
 
             if self.blockchain.add_transaction(transaction):
                 logging.info("Added transaction!")

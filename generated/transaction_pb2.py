@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\"u\n\x0bTransaction\x12\x0e\n\x06sender\x18\x01 \x01(\t\x12\x11\n\trecipient\x18\x02 \x01(\t\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x02\x12\x16\n\tsignature\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\r\n\x05nonce\x18\x05 \x01(\x05\x42\x0c\n\n_signatureb\x06proto3'
+  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\"\x89\x01\n\x0bTransaction\x12\x0e\n\x06sender\x18\x01 \x01(\t\x12\x11\n\trecipient\x18\x02 \x01(\t\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x02\x12\x16\n\tsignature\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\r\n\x05nonce\x18\x05 \x01(\x05\x12\x12\n\npublic_key\x18\x06 \x01(\tB\x0c\n\n_signatureb\x06proto3'
 )
 
 
@@ -68,6 +68,13 @@ _TRANSACTION = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='public_key', full_name='transaction.Transaction.public_key', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -85,8 +92,8 @@ _TRANSACTION = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=44,
-  serialized_end=161,
+  serialized_start=45,
+  serialized_end=182,
 )
 
 _TRANSACTION.oneofs_by_name['_signature'].fields.append(

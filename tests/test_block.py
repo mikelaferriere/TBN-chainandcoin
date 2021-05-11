@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from generated.block_pb2 import Block  # type: ignore
 from blockchain import Blockchain
-from walletv2 import Wallet
+from walletv3 import Wallet
 
 
 def test_block_format():

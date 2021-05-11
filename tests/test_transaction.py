@@ -1,5 +1,7 @@
+import ecdsa
+
 from generated.transaction_pb2 import Transaction  # type: ignore
-from walletv2 import Wallet
+from walletv3 import Wallet
 
 
 def test_transaction_to_protobuf_and_back():
@@ -19,9 +21,14 @@ def test_transaction_with_signature_to_protobuf_and_back():
     w = Wallet(test=True)
     w2 = Wallet(test=True)
 
-    t = Transaction(sender=w.address, recipient=w2.address, amount=4.5)
+    t = Transaction(
+        sender=w.address,
+        recipient=w2.address,
+        amount=4.5,
+        public_key=w.public_key.hex(),
+    )
 
-    signature = w.sign_transaction(w.address, w2.address, 4.5)
+    signature = w.sign_transaction(t)
     t.signature = signature
 
     t_hex = t.SerializeToString().hex()
@@ -38,9 +45,14 @@ def test_transaction_fails_validation():
     w = Wallet(test=True)
     w2 = Wallet(test=True)
 
-    t = Transaction(sender=w.address, recipient=w2.address, amount=4.5)
+    t = Transaction(
+        sender=w.address,
+        recipient=w2.address,
+        amount=4.5,
+        public_key=w.public_key.hex(),
+    )
 
-    signature = w.sign_transaction(w.address, w2.address, 4.5)
+    signature = w.sign_transaction(t)
     t.signature = signature
 
     t_hex = t.SerializeToString().hex()
@@ -53,4 +65,8 @@ def test_transaction_fails_validation():
     assert w.verify_transaction(t)
 
     t.amount = 2.5
-    assert not w.verify_transaction(t)
+    try:
+        w.verify_transaction(t)
+        raise Exception("Expected to fail but did not")
+    except ecdsa.keys.BadSignatureError:
+        assert True
