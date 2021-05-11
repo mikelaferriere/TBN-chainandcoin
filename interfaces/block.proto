@@ -7,10 +7,12 @@ import "generated/transaction.proto";
 package block;
 
 message Block {
-  int32 index = 1;
+  int64 index = 1;
   google.protobuf.Timestamp timestamp = 2;
-  int32 transaction_count = 3;
+  int64 transaction_count = 3;
   repeated transaction.Transaction transactions = 4;
-  int32 nonce = 5;
+  int64 nonce = 5;
   string previous_hash = 6;
+  int64 difficulty = 7;
+  string version = 8;
 }

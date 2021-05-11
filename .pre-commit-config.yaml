@@ -19,21 +19,22 @@ repos:
     hooks:
       - id: black
         language_version: python3
-        stages: [push]
+        exclude: generated/
+        stages: [commit]
   - repo: https://gitlab.com/pycqa/flake8
     rev: "3.9.1"
     hooks:
       - id: flake8
         args:
           - "--config=setup.cfg"
-        stages: [push]
+        stages: [commit]
   - repo: https://github.com/PyCQA/pylint
     rev: "pylint-2.7.4"
     hooks:
       - id: pylint
         args:
           - "--rcfile=pylintrc"
-        stages: [push]
+        stages: [commit]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v0.812"
     hooks:
@@ -41,7 +42,7 @@ repos:
         name: mypy
         additional_dependencies:
           - pydantic==1.4
-        stages: [push]
+        stages: [commit]
   - repo: local
     hooks:
       - id: pytest
