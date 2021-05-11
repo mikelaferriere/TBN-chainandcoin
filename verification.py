@@ -1,10 +1,8 @@
 import logging
 import hashlib
 
-from typing import Callable, List
+from typing import Any, Callable, List
 
-from block_pb2 import Block  # type: ignore
-from transaction_pb2 import Transaction  # type: ignore
 from walletv2 import Wallet
 
 logger = logging.getLogger(__name__)
@@ -19,7 +17,7 @@ def hash_bytes_256(b: bytes) -> str:
 
 class Verification:
     @staticmethod
-    def hash_block(block: Block) -> str:
+    def hash_block(block: Any) -> str:
         """
         First, convert the block to an OrderedDict dictionary
         Then hash the block using SHA256
@@ -29,7 +27,7 @@ class Verification:
 
     @staticmethod
     def valid_nonce(
-        nonce: int, transactions: List[Transaction], previous_hash: str, difficulty: int
+        nonce: int, transactions: List[Any], previous_hash: str, difficulty: int
     ) -> bool:
         """
         Validates the Nonce: Does the hash(nonce, block) contain <difficulty> leading zeros?
@@ -44,7 +42,7 @@ class Verification:
         return guess_hash[:difficulty] == "0" * difficulty
 
     @classmethod
-    def verify_chain(cls, blockchain: List[Block]) -> bool:
+    def verify_chain(cls, blockchain: List[Any]) -> bool:
         """
         Determine if a given blockchain is valid
         :param chain: List[Block] A Blockchain
@@ -84,7 +82,7 @@ class Verification:
 
     @staticmethod
     def verify_transaction(
-        transaction: Transaction, get_balance: Callable, check_funds: bool = True
+        transaction: Any, get_balance: Callable, check_funds: bool = True
     ) -> bool:
         """
         Verifies the transaction.
@@ -108,9 +106,7 @@ class Verification:
         return Wallet.verify_transaction(transaction)
 
     @classmethod
-    def verify_transactions(
-        cls, open_transactions: List[Transaction], get_balance: Callable
-    ):
+    def verify_transactions(cls, open_transactions: List[Any], get_balance: Callable):
         """
         Verifies all open & unprocessed transactions without checking sender's balance
         """

@@ -6,6 +6,7 @@ help:
 
 linux-deps:
 	sudo snap install protobuf --classic
+
 pip-test:
 	python3 -m pip install --upgrade pip
 	python3 -m pip install -r requirements-test.txt
@@ -26,6 +27,10 @@ run-node:
 
 run-console:
 	python console.py
+
+generate-protobuf:
+	protoc interfaces/transaction.proto --python_out ./ --proto_path generated=./interfaces/ --experimental_allow_proto3_optional
+	protoc interfaces/block.proto --python_out ./ --proto_path generated=./interfaces/ --experimental_allow_proto3_optional
 
 .PHONY: \
 	help

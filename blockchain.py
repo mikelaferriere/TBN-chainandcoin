@@ -13,8 +13,8 @@ import requests
 
 from google.protobuf.timestamp_pb2 import Timestamp
 
-from block_pb2 import Block  # type: ignore
-from transaction_pb2 import Transaction  # type: ignore
+from generated.block_pb2 import Block
+from generated.transaction_pb2 import Transaction
 from verification import Verification
 from walletv2 import Wallet
 
@@ -41,7 +41,7 @@ class Blockchain:
     def __init__(self, address: str, node_id: UUID, difficulty: int = 4) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
-        self.__open_transactions = []  # type: List[Transaction]
+        self.__open_transactions = []  # type: List[Any]
         self.nodes = set()  # type: Set[Any]
         self.difficulty = difficulty
         self.address = address
@@ -50,6 +50,7 @@ class Blockchain:
         genesis_block = Block(
             index=0,
             timestamp=Timestamp().GetCurrentTime(),  # type: ignore
+            transaction_count=0,
             transactions=[],
             nonce=100,
             previous_hash="",
@@ -58,7 +59,7 @@ class Blockchain:
         self.chain = [genesis_block]
 
     @property
-    def chain(self) -> List[Block]:
+    def chain(self) -> List[Any]:
         """
         This turns the chain attribute into a property with a getter (the method below)
         and a setter (@chain.setter)
@@ -69,7 +70,7 @@ class Blockchain:
         return self.__chain[:]
 
     @chain.setter
-    def chain(self, val: List[Block]) -> None:
+    def chain(self, val: List[Any]) -> None:
         """
         Setter function to directly set the value of the chain. This is only used when
         re-aligning the chain with the rest of the network, and setting up the genesis block.
@@ -83,7 +84,7 @@ class Blockchain:
         """
         return len(self.__chain)
 
-    def add_block_to_chain(self, block: Block) -> None:
+    def add_block_to_chain(self, block: Any) -> None:
         """
         Adds the current block to the chain. By this time, it has been fully verified and
         the chain will be valid once it is added
@@ -91,14 +92,14 @@ class Blockchain:
         self.__chain.append(block)
 
     @property
-    def get_open_transactions(self) -> List[Transaction]:
+    def get_open_transactions(self) -> List[Any]:
         """
         Return a copy of the list of transactions that have not yet been mined
         """
         return self.__open_transactions[:]
 
     @property
-    def last_block(self) -> Block:
+    def last_block(self) -> Any:
         """
         Returns the last block in the chain
         """
@@ -119,7 +120,7 @@ class Blockchain:
 
         return [c.SerializeToString().hex() for c in self.chain]
 
-    def __broadcast_transaction(self, transaction: Transaction) -> None:
+    def __broadcast_transaction(self, transaction: Any) -> None:
         """
         Broadcast the current transaction to all nodes on the network that this node
         is aware of.
@@ -140,7 +141,7 @@ class Blockchain:
             except requests.exceptions.ConnectionError:
                 continue
 
-    def __broadcast_block(self, block: Block) -> None:
+    def __broadcast_block(self, block: Any) -> None:
         """
         Broadcast the current block to all nodes on the network that this node
         is aware of.
@@ -232,9 +233,7 @@ class Blockchain:
         # Return the total balance
         return amount_received - amount_sent
 
-    def add_transaction(
-        self, transaction: Transaction, is_receiving: bool = False
-    ) -> int:
+    def add_transaction(self, transaction: Any, is_receiving: bool = False) -> int:
         """
         Creates a new transaction to go into the next mined Block
         :param transaction: <Transaction>
@@ -292,7 +291,7 @@ class Blockchain:
 
     def mine_block(
         self, address: Optional[str] = None, difficulty: Optional[int] = None
-    ) -> Optional[Block]:
+    ) -> Optional[Any]:
         """
         The current node runs the mining protocol, and depending on the difficulty, this
         could take a lot of processing power.
@@ -345,6 +344,7 @@ class Blockchain:
         block = Block(
             index=self.next_index,
             timestamp=Timestamp().GetCurrentTime(),  # type: ignore
+            transaction_count=len(copied_open_transactions),
             transactions=copied_open_transactions,
             nonce=nonce,
             previous_hash=previous_hash,
@@ -360,7 +360,7 @@ class Blockchain:
 
         return block
 
-    def add_block(self, block: Block) -> Tuple[bool, Optional[str]]:
+    def add_block(self, block: Any) -> Tuple[bool, Optional[str]]:
         """
         When a new block is received via a broadcast, the receiving nodes must validate the
         block to make sure it is valid, and then add it to their chains.
@@ -442,7 +442,6 @@ class Blockchain:
                     max_length = length
                     new_chain = chain
 
-        logger.info(new_chain)
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
             self.chain = new_chain
