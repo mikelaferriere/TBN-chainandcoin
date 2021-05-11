@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 MINING_REWARD = 10
 
 
-class Blockchain:
+class Blockchain:  # pylint: disable=too-many-instance-attributes
     """
     This class manages the chain of blocks, open transactions and the node on which it's running
       chain_identifier : <uuid>
@@ -38,13 +38,16 @@ class Blockchain:
           Wallet address that transfers initiated from this node will be used as the recipient
     """
 
-    def __init__(self, address: str, node_id: UUID, difficulty: int = 4) -> None:
+    def __init__(
+        self, address: str, node_id: UUID, difficulty: int = 4, version: str = "0.1"
+    ) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
         self.__open_transactions = []  # type: List[Any]
         self.nodes = set()  # type: Set[Any]
         self.difficulty = difficulty
         self.address = address
+        self.version = version
 
         # Create the 'genesis' block. This is the inital block.
         genesis_block = Block(
@@ -54,6 +57,8 @@ class Blockchain:
             transactions=[],
             nonce=100,
             previous_hash="",
+            difficulty=difficulty,
+            version=version,
         )
 
         self.chain = [genesis_block]
@@ -348,6 +353,8 @@ class Blockchain:
             transactions=copied_open_transactions,
             nonce=nonce,
             previous_hash=previous_hash,
+            difficulty=difficulty,
+            version=self.version,
         )
 
         # Add the block to the node's chain

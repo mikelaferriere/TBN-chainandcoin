@@ -12,7 +12,9 @@ def test_block_format():
 
     genesis_block = chain.last_block
 
-    assert genesis_block == Block(index=0, nonce=100, previous_hash="")
+    assert genesis_block == Block(
+        index=0, nonce=100, previous_hash="", difficulty=4, version="0.1"
+    )
 
 
 def test_block_to_protobuf_and_back():
@@ -22,12 +24,16 @@ def test_block_to_protobuf_and_back():
 
     genesis_block = chain.last_block
 
-    assert genesis_block == Block(index=0, nonce=100, previous_hash="")
+    assert genesis_block == Block(
+        index=0, nonce=100, previous_hash="", difficulty=4, version="0.1"
+    )
 
     p_genesis_block = genesis_block.SerializeToString().hex()
-    assert p_genesis_block == "2864"
+    assert p_genesis_block == "286438044203302e31"
 
     og_genesis_block = Block()
     og_genesis_block.ParseFromString(bytes.fromhex(p_genesis_block))
 
-    assert og_genesis_block == Block(index=0, nonce=100, previous_hash="")
+    assert og_genesis_block == Block(
+        index=0, nonce=100, previous_hash="", difficulty=4, version="0.1"
+    )

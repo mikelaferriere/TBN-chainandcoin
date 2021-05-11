@@ -133,6 +133,8 @@ def block_by_hash(block_hash):
         "previous_hash": block.previous_hash,
         "transaction_count": len(block.transactions),
         "transactions": [t.SerializeToString().hex() for t in block.transactions],
+        "difficulty": block.difficulty,
+        "version": block.version,
     }
     return jsonify(response), 200
 
