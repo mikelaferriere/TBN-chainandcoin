@@ -7,4 +7,5 @@ message Transaction {
   string recipient = 2;
   float amount = 3;
   optional string signature = 4;
+  int32 nonce = 5;
 }
