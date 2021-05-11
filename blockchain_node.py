@@ -4,14 +4,13 @@ API to interact with the blockchain.
 import logging
 import getpass
 import os
-import json
 
 from uuid import uuid4
 from flask import Flask, jsonify, request
 
-from block import Block
+from block_pb2 import Block  # type: ignore
 from blockchain import Blockchain
-from transaction import Transaction
+from transaction_pb2 import Transaction  # type: ignore
 from walletv2 import Wallet
 
 
@@ -42,7 +41,7 @@ def mine():
 
     response = {
         "message": "New Block Forged",
-        "block": blockchain.last_block.to_ordered_dict(),
+        "block": blockchain.last_block,
     }
 
     return jsonify(response), 200
@@ -87,7 +86,7 @@ def pending_transaction():
       transactions : List[Transaction]
     """
     # Get pending Transactions
-    pending = [p.to_ordered_dict() for p in blockchain.get_open_transactions]
+    pending = blockchain.get_open_transactions
     return jsonify(pending), 201
 
 
@@ -108,6 +107,58 @@ def full_chain():
       length : int
     """
     response = {"chain": blockchain.pretty_chain(), "length": len(blockchain.chain)}
+    return jsonify(response), 200
+
+
+@app.route("/block/<block_hash>", methods=["GET"])
+def block_by_hash(block_hash):
+    """
+    Returns a cleartext block by its hash
+
+    Methods
+    -----
+    GET
+
+    Returns application/json
+    -----
+    Return code : 200
+    Response :
+      chain : Block
+    """
+    block = Block()
+    block.ParseFromString(bytes.fromhex(block_hash))
+    response = {
+        "index": block.index,
+        "nonce": block.nonce,
+        "previous_hash": block.previous_hash,
+        "transactions": [t.SerializeToString().hex() for t in block.transactions],
+    }
+    return jsonify(response), 200
+
+
+@app.route("/transaction/<transaction_hash>", methods=["GET"])
+def transaction_by_hash(transaction_hash):
+    """
+    Returns a cleartext transaction by its hash
+
+    Methods
+    -----
+    GET
+
+    Returns application/json
+    -----
+    Return code : 200
+    Response :
+      chain : Transaction
+    """
+    transaction = Transaction()
+    transaction.ParseFromString(bytes.fromhex(transaction_hash))
+    response = {
+        "sender": transaction.sender,
+        "recipient": transaction.recipient,
+        "amount": transaction.amount,
+        "signature": transaction.signature,
+    }
     return jsonify(response), 200
 
 
@@ -186,7 +237,7 @@ def broadcast_block():
 
     Parameters
     -----
-      block : Block as Dict
+      block : Block as hex
 
     Returns application/json
     -----
@@ -201,8 +252,8 @@ def broadcast_block():
     if "block" not in values:
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
-    block_dict = json.loads(values["block"])
-    block = Block.generate_from_dict(block_dict)
+    block = Block()
+    block.ParseFromString(bytes.fromhex(values["block"]))
     if block.index == blockchain.last_block.index + 1:
         added, message = blockchain.add_block(block)
         if added:
@@ -248,28 +299,17 @@ def broadcast_transaction():
     if not values:
         response = {"message": "No data found."}
         return jsonify(response), 400
-    required = ["sender", "recipient", "amount", "signature"]
+    required = ["transaction"]
     if not all(key in values for key in required):
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
-    success = blockchain.add_transaction(
-        Transaction(
-            sender=values["sender"],
-            recipient=values["recipient"],
-            amount=values["amount"],
-            signature=values["signature"],
-        ),
-        is_receiving=True,
-    )
+    t = Transaction()
+    t.ParseFromString(bytes.fromhex(values["transaction"]))
+    success = blockchain.add_transaction(t, is_receiving=True)
     if success:
         response = {
             "message": "Successfully added transaction.",
-            "transaction": {
-                "sender": values["sender"],
-                "recipient": values["recipient"],
-                "amount": values["amount"],
-                "signature": values["signature"],
-            },
+            "transaction": values["transaction"],
         }
         return jsonify(response), 201
     response = {"message": "Creating a transaction failed."}

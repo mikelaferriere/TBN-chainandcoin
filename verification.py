@@ -1,11 +1,10 @@
 import logging
 import hashlib
-import json
 
 from typing import Callable, List
 
-from block import Block
-from transaction import Transaction
+from block_pb2 import Block  # type: ignore
+from transaction_pb2 import Transaction  # type: ignore
 from walletv2 import Wallet
 
 logger = logging.getLogger(__name__)
@@ -25,8 +24,8 @@ class Verification:
         First, convert the block to an OrderedDict dictionary
         Then hash the block using SHA256
         """
-        hashable_block = block.to_ordered_dict()
-        return hash_bytes_256(json.dumps(hashable_block, sort_keys=True).encode())
+        hashable_block = block.SerializeToString()
+        return hash_bytes_256(hashable_block)
 
     @staticmethod
     def valid_nonce(
@@ -40,11 +39,7 @@ class Verification:
         :param difficulty: <int> Difficulty of the proof of work
         :return: <bool> True if correct, False if not
         """
-        guess = (
-            str([tx.to_ordered_dict() for tx in transactions])
-            + str(previous_hash)
-            + str(nonce)
-        ).encode()
+        guess = (str(transactions) + str(previous_hash) + str(nonce)).encode()
         guess_hash = hash_bytes_256(guess)
         return guess_hash[:difficulty] == "0" * difficulty
 
@@ -106,6 +101,7 @@ class Verification:
                 "Checking the sender's balance can cover the amount being transferred"
             )
             sender_balance = get_balance(transaction.sender)
+            logger.info("Sender's balance: %s", sender_balance)
             return sender_balance >= transaction.amount and Wallet.verify_transaction(
                 transaction
             )

@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
 )
 
 from blockchain import Blockchain
-from transaction import Transaction
+from transaction_pb2 import Transaction  # type: ignore
 from util.logging0 import configure_logging
 from walletv2 import Wallet
 
@@ -275,7 +275,7 @@ class Window(
             transaction = Transaction(
                 sender=self.wallet.address,
                 recipient=recipient.text(),
-                amount=amount.text(),
+                amount=float(amount.text()),
                 signature=signature,
             )
 
