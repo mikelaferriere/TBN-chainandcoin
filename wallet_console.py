@@ -1,6 +1,6 @@
 import logging
 import getpass
-from walletv2 import Wallet
+from wallet import Wallet
 
 logging.basicConfig(level=logging.INFO)
 

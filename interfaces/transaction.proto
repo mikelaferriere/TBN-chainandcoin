@@ -8,4 +8,5 @@ message Transaction {
   float amount = 3;
   optional string signature = 4;
   int32 nonce = 5;
+  string public_key = 6;
 }

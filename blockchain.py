@@ -16,7 +16,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from generated.block_pb2 import Block
 from generated.transaction_pb2 import Transaction
 from verification import Verification
-from walletv2 import Wallet
+from wallet import Wallet
 
 logger = logging.getLogger(__name__)
 

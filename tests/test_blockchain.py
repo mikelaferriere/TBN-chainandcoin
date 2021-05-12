@@ -3,7 +3,7 @@ from uuid import uuid4
 from blockchain import Blockchain
 from generated.transaction_pb2 import Transaction  # type: ignore
 from verification import Verification
-from walletv2 import Wallet
+from wallet import Wallet
 
 
 def test_blockchain_constructor():
@@ -29,14 +29,22 @@ def test_mining_block_with_open_transactions():
     chain = Blockchain(w1.address, node_id)
 
     transaction_1 = Transaction(
-        sender=w1.address, recipient=w2.address, nonce=0, amount=0.5
+        sender=w1.address,
+        recipient=w2.address,
+        nonce=0,
+        amount=0.5,
+        public_key=w1.public_key.hex(),
     )
-    transaction_1.signature = w1.sign_transaction(w1.address, w2.address, 0.5)
+    transaction_1.signature = w1.sign_transaction(transaction_1)
 
     transaction_2 = Transaction(
-        sender=w2.address, recipient=w1.address, nonce=0, amount=0.5
+        sender=w2.address,
+        recipient=w1.address,
+        nonce=0,
+        amount=0.5,
+        public_key=w2.public_key.hex(),
     )
-    transaction_2.signature = w2.sign_transaction(w2.address, w1.address, 0.5)
+    transaction_2.signature = w2.sign_transaction(transaction_2)
 
     assert Verification.verify_chain(chain.chain)
     # Need to give the w1 at least 1.0 coin in their balance
@@ -65,9 +73,13 @@ def test_not_enough_coin():
     w2 = Wallet(test=True)
     chain = Blockchain(w.address, node_id)
     transaction = Transaction(
-        sender=w.address, recipient=w2.address, nonce=0, amount=0.5
+        sender=w.address,
+        recipient=w2.address,
+        nonce=0,
+        amount=0.5,
+        public_key=w.public_key.hex(),
     )
-    transaction.signature = w.sign_transaction(w.address, w2.address, 0.5)
+    transaction.signature = w.sign_transaction(transaction)
 
     assert Verification.verify_chain(chain.chain)
     try:
