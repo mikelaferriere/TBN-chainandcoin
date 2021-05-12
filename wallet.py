@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
+from Crypto.Hash import keccak
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Util.Padding import pad, unpad
@@ -180,7 +181,10 @@ class Wallet:
     def generate_address(self) -> str:
         if not self.public_key:
             raise ValueError("Public key must exist in order to generate an address")
-        address = self.public_key.hex()
+        k = keccak.new(digest_bits=256)
+        k.update(self.public_key)
+        address = k.digest()[-20:]
+        address = "0x" + address.hex()
         self.address = address
         return address
 
