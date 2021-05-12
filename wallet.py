@@ -59,9 +59,8 @@ class Wallet:
         public key.
         """
 
-        passphrase_bytes = passphrase.encode("utf-8")
-        salt = get_random_bytes(16)
-        key = scrypt(passphrase_bytes, salt, 32, N=2 ** 20, r=8, p=1)
+        salt_ = get_random_bytes(16)
+        key = scrypt(passphrase, salt_, 32, N=2 ** 20, r=8, p=1)  # type: ignore
 
         try:
             self.__generate_keys()
@@ -69,11 +68,11 @@ class Wallet:
                 raise ValueError("Private key must exist after generating keys")
             private_key = self.private_key.to_string().hex()
             data = str(private_key).encode("utf-8")
-            cipher = AES.new(key, AES.MODE_CBC)
+            cipher = AES.new(key, AES.MODE_CBC)  # type: ignore
             ct_bytes = cipher.encrypt(pad(data, AES.block_size))
 
-            salt = salt.hex()
-            iv = cipher.iv.hex()
+            salt = salt_.hex()  # type: ignore
+            iv = cipher.iv.hex()  # type: ignore
             ct = ct_bytes.hex()
 
             output = {
@@ -111,7 +110,6 @@ class Wallet:
             logger.debug("Already logged in. No need to log in again")
             return True
 
-        passphrase_bytes = passphrase.encode("utf-8")
         try:
             path = Path("wallet")
             path.mkdir(exist_ok=True)
@@ -125,10 +123,10 @@ class Wallet:
                 iv = bytes.fromhex(iv)
                 ct = bytes.fromhex(ct)
 
-                key = scrypt(passphrase_bytes, salt, 32, N=2 ** 20, r=8, p=1)
+                key = scrypt(passphrase, salt, 32, N=2 ** 20, r=8, p=1)  # type: ignore
 
-                cipher = AES.new(key, AES.MODE_CBC, iv)
-                pt = bytes.fromhex(
+                cipher = AES.new(key, AES.MODE_CBC, iv)  # type: ignore
+                pt = bytes.fromhex(  # type: ignore
                     unpad(cipher.decrypt(ct), AES.block_size).decode("utf-8")
                 )
 
@@ -183,8 +181,8 @@ class Wallet:
             raise ValueError("Public key must exist in order to generate an address")
         k = keccak.new(digest_bits=256)
         k.update(self.public_key)
-        address = k.digest()[-20:]
-        address = "0x" + address.hex()
+        addr = k.digest()[-20:]
+        address = "0x" + addr.hex()
         self.address = address
         return address
 
