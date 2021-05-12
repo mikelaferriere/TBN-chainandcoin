@@ -6,9 +6,15 @@ NOTE 2: This library does not protect against side-channel attacks
 """
 import logging
 import hashlib
+import json
 
 from pathlib import Path
 from typing import Any, Optional
+
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import scrypt
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
 
 import ecdsa
 
@@ -40,7 +46,9 @@ class Wallet:
 
         return logged_in
 
-    def create_login(self, _passphrase: str, save: bool = True) -> bool:
+    def create_login(  # pylint: disable=too-many-locals
+        self, passphrase: str, save: bool = True
+    ) -> bool:
         """
         Initialize the wallet by generating new keys using the provided passphrase.
         Then save the keys locally so they can be recovered using the passphrase after the
@@ -49,10 +57,35 @@ class Wallet:
         The wallet address is also set here. For now, the address is the same value as the
         public key.
         """
+
+        passphrase_bytes = passphrase.encode("utf-8")
+        salt = get_random_bytes(16)
+        key = scrypt(passphrase_bytes, salt, 32, N=2 ** 20, r=8, p=1)
+
         try:
             self.__generate_keys()
+            if not self.private_key:
+                raise ValueError("Private key must exist after generating keys")
+            private_key = self.private_key.to_string().hex()
+            data = str(private_key).encode("utf-8")
+            cipher = AES.new(key, AES.MODE_CBC)
+            ct_bytes = cipher.encrypt(pad(data, AES.block_size))
+
+            salt = salt.hex()
+            iv = cipher.iv.hex()
+            ct = ct_bytes.hex()
+
+            output = {
+                "salt": salt,
+                "initialization_vector": iv,
+                "encrypted_private_key": ct,
+            }
+
             if save:
-                Wallet.save_key(self.private_key)
+                path = Path("wallet")
+                path.mkdir(exist_ok=True)
+                with open(path / ".keys", mode="w") as f:
+                    json.dump(output, f)
         except (IOError, IndexError):
             logger.error("Creating login for wallet failed...")
         except ValueError as e:
@@ -64,7 +97,7 @@ class Wallet:
         self.set_is_logged_in()
         return self.logged_in
 
-    def login(self, _passphrase: str) -> bool:
+    def login(self, passphrase: str) -> bool:
         """
         Using the passphrase provided, grab the private key from the saved location and
         attempt to decrypt it.
@@ -76,8 +109,34 @@ class Wallet:
         if self.logged_in:
             logger.debug("Already logged in. No need to log in again")
             return True
+
+        passphrase_bytes = passphrase.encode("utf-8")
         try:
-            self.private_key = Wallet.load_key()
+            path = Path("wallet")
+            path.mkdir(exist_ok=True)
+            with open(path / ".keys", mode="r") as f:
+                data = json.load(f)
+                salt = data["salt"]
+                iv = data["initialization_vector"]
+                ct = data["encrypted_private_key"]
+
+                salt = bytes.fromhex(salt)
+                iv = bytes.fromhex(iv)
+                ct = bytes.fromhex(ct)
+
+                key = scrypt(passphrase_bytes, salt, 32, N=2 ** 20, r=8, p=1)
+
+                cipher = AES.new(key, AES.MODE_CBC, iv)
+                pt = bytes.fromhex(
+                    unpad(cipher.decrypt(ct), AES.block_size).decode("utf-8")
+                )
+
+                self.private_key = ecdsa.SigningKey.from_string(
+                    pt,
+                    curve=ecdsa.SECP256k1,
+                    hashfunc=hashlib.sha256,  # the default is sha1
+                )
+
             if not self.private_key:
                 raise FileNotFoundError("Tried to login, but no key was found")
             vk = self.private_key.verifying_key
@@ -124,25 +183,6 @@ class Wallet:
         address = self.public_key.hex()
         self.address = address
         return address
-
-    @staticmethod
-    def save_key(private_key: ecdsa.SigningKey) -> None:
-        path = Path("wallet")
-        path.mkdir(exist_ok=True)
-        with open(path / ".keys", mode="wb") as f:
-            f.write(private_key.to_string())
-
-    @staticmethod
-    def load_key() -> ecdsa.SigningKey:
-        path = Path("wallet")
-        path.mkdir(exist_ok=True)
-        with open(path / ".keys", mode="rb") as f:
-            raw = f.read()
-            return ecdsa.SigningKey.from_string(
-                raw,
-                curve=ecdsa.SECP256k1,
-                hashfunc=hashlib.sha256,  # the default is sha1
-            )
 
     @staticmethod
     def load_address() -> Optional[str]:
