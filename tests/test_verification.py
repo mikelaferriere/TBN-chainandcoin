@@ -6,7 +6,7 @@ from verification import Verification
 
 
 def test_block_hash_happy_path():
-    timestamp = datetime.fromtimestamp(0)
+    timestamp = datetime.utcfromtimestamp(0)
 
     block = Block(
         index=0,
@@ -24,7 +24,7 @@ def test_block_hash_happy_path():
 
 
 def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
-    timestamp = datetime.fromtimestamp(0)
+    timestamp = datetime.utcfromtimestamp(0)
 
     block = Block(
         index=0,
@@ -90,7 +90,7 @@ def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
 
 
 def test_correct_nonce():
-    timestamp = datetime.fromtimestamp(0)
+    timestamp = datetime.utcfromtimestamp(0)
 
     block_one = Block(
         index=0,
@@ -118,7 +118,7 @@ def test_correct_nonce():
 
     nonce = Verification.proof_of_work(block_one, open_transactions, 4)
 
-    timestamp = datetime.fromtimestamp(1)
+    timestamp = datetime.utcfromtimestamp(1)
 
     block_two = Block(
         index=1,

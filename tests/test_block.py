@@ -11,7 +11,7 @@ def test_block_format():
     w = Wallet(test=True)
     chain = Blockchain(w.address, node_id)
 
-    timestamp = datetime.fromtimestamp(0)
+    timestamp = datetime.utcfromtimestamp(0)
     genesis_block = chain.last_block
     genesis_block.timestamp = timestamp
 
@@ -32,7 +32,7 @@ def test_block_to_protobuf_and_back():
     w = Wallet(test=True)
     chain = Blockchain(w.address, node_id)
 
-    timestamp = datetime.fromtimestamp(0)
+    timestamp = datetime.utcfromtimestamp(0)
     genesis_block = chain.last_block
     genesis_block.timestamp = timestamp
 
@@ -48,7 +48,7 @@ def test_block_to_protobuf_and_back():
     )
 
     p_genesis_block = genesis_block.SerializeToString().hex()
-    assert p_genesis_block == "0800120b08b0f3feffffffffffff0118002864320038044203302e31"
+    assert p_genesis_block == "0800120018002864320038044203302e31"
 
     og_genesis_block = Block.ParseFromString(bytes.fromhex(p_genesis_block))
 
