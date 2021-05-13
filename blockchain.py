@@ -3,18 +3,18 @@ The blockchain (Really need to add a better description of what this is)
 """
 from functools import reduce
 
+from time import time
+
 from urllib.parse import urlparse
 from uuid import UUID
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 import logging
 import requests
 
-from google.protobuf.timestamp_pb2 import Timestamp
-
-from generated.block_pb2 import Block
-from generated.transaction_pb2 import Transaction
+from block import Block
+from transaction import Transaction
 from verification import Verification
 from wallet import Wallet
 
@@ -43,8 +43,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
     ) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
-        self.__open_transactions = []  # type: List[Any]
-        self.nodes = set()  # type: Set[Any]
+        self.__open_transactions = []  # type: List[Transaction]
+        self.nodes = set()  # type: Set[str]
         self.difficulty = difficulty
         self.address = address
         self.version = version
@@ -52,7 +52,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Create the 'genesis' block. This is the inital block.
         genesis_block = Block(
             index=0,
-            timestamp=Timestamp().GetCurrentTime(),  # type: ignore
+            timestamp=time(),  # type: ignore
             transaction_count=0,
             transactions=[],
             nonce=100,
@@ -64,7 +64,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.chain = [genesis_block]
 
     @property
-    def chain(self) -> List[Any]:
+    def chain(self) -> List[Block]:
         """
         This turns the chain attribute into a property with a getter (the method below)
         and a setter (@chain.setter)
@@ -75,7 +75,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         return self.__chain[:]
 
     @chain.setter
-    def chain(self, val: List[Any]) -> None:
+    def chain(self, val: List[Block]) -> None:
         """
         Setter function to directly set the value of the chain. This is only used when
         re-aligning the chain with the rest of the network, and setting up the genesis block.
@@ -89,7 +89,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         """
         return len(self.__chain)
 
-    def add_block_to_chain(self, block: Any) -> None:
+    def add_block_to_chain(self, block: Block) -> None:
         """
         Adds the current block to the chain. By this time, it has been fully verified and
         the chain will be valid once it is added
@@ -97,14 +97,14 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.__chain.append(block)
 
     @property
-    def get_open_transactions(self) -> List[Any]:
+    def get_open_transactions(self) -> List[Transaction]:
         """
         Return a copy of the list of transactions that have not yet been mined
         """
         return self.__open_transactions[:]
 
     @property
-    def last_block(self) -> Any:
+    def last_block(self) -> Block:
         """
         Returns the last block in the chain
         """
@@ -117,7 +117,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         """
         return len(self.__chain)
 
-    def pretty_chain(self) -> List[Dict]:
+    def pretty_chain(self) -> List[str]:
         """
         Returns the full Blockchain in a nicely formatted string
         :return: <str>
@@ -125,7 +125,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         return [c.SerializeToString().hex() for c in self.chain]
 
-    def __broadcast_transaction(self, transaction: Any) -> None:
+    def __broadcast_transaction(self, transaction: Transaction) -> None:
         """
         Broadcast the current transaction to all nodes on the network that this node
         is aware of.
@@ -146,7 +146,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             except requests.exceptions.ConnectionError:
                 continue
 
-    def __broadcast_block(self, block: Any) -> None:
+    def __broadcast_block(self, block: Block) -> None:
         """
         Broadcast the current block to all nodes on the network that this node
         is aware of.
@@ -238,7 +238,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Return the total balance
         return amount_received - amount_sent
 
-    def add_transaction(self, transaction: Any, is_receiving: bool = False) -> int:
+    def add_transaction(
+        self, transaction: Transaction, is_receiving: bool = False
+    ) -> int:
         """
         Creates a new transaction to go into the next mined Block
         :param transaction: <Transaction>
@@ -265,7 +267,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
     def mine_block(
         self, address: Optional[str] = None, difficulty: Optional[int] = None
-    ) -> Optional[Any]:
+    ) -> Optional[Block]:
         """
         The current node runs the mining protocol, and depending on the difficulty, this
         could take a lot of processing power.
@@ -319,7 +321,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         copied_open_transactions.append(reward_transaction)
         block = Block(
             index=self.next_index,
-            timestamp=Timestamp().GetCurrentTime(),  # type: ignore
+            timestamp=time(),
             transaction_count=len(copied_open_transactions),
             transactions=copied_open_transactions,
             nonce=nonce,
@@ -338,7 +340,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         return block
 
-    def add_block(self, block: Any) -> Tuple[bool, Optional[str]]:
+    def add_block(self, block: Block) -> Tuple[bool, Optional[str]]:
         """
         When a new block is received via a broadcast, the receiving nodes must validate the
         block to make sure it is valid, and then add it to their chains.

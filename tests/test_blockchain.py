@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from blockchain import Blockchain
-from generated.transaction_pb2 import Transaction  # type: ignore
+from transaction import Transaction
 from verification import Verification
 from wallet import Wallet
 

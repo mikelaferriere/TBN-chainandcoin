@@ -9,8 +9,8 @@ from uuid import uuid4
 from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
-from generated.block_pb2 import Block  # type: ignore
-from generated.transaction_pb2 import Transaction  # type: ignore
+from block import Block
+from transaction import Transaction
 from wallet import Wallet
 
 

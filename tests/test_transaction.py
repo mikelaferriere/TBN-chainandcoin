@@ -1,18 +1,23 @@
 import ecdsa
 
-from generated.transaction_pb2 import Transaction  # type: ignore
+from transaction import Transaction
 from wallet import Wallet
 
 
 def test_transaction_to_protobuf_and_back():
-    t = Transaction(sender="test", recipient="test2", amount=4.5)
-
+    t = Transaction(
+        sender="test",
+        recipient="test2",
+        amount=4.5,
+        nonce=0,
+        public_key="pub_key",
+        signature=None,
+    )
     t_hex = t.SerializeToString().hex()
 
-    assert t_hex == "0a0474657374120574657374321d00009040"
+    assert t_hex == "0a0474657374120574657374321d00009040280032077075625f6b6579"
 
-    parsed_t = Transaction()
-    parsed_t.ParseFromString(bytes.fromhex(t_hex))
+    parsed_t = Transaction.ParseFromString(bytes.fromhex(t_hex))
 
     assert parsed_t == t
 
@@ -25,7 +30,9 @@ def test_transaction_with_signature_to_protobuf_and_back():
         sender=w.address,
         recipient=w2.address,
         amount=4.5,
+        nonce=0,
         public_key=w.public_key.hex(),
+        signature=None,
     )
 
     signature = w.sign_transaction(t)
@@ -33,8 +40,7 @@ def test_transaction_with_signature_to_protobuf_and_back():
 
     t_hex = t.SerializeToString().hex()
 
-    parsed_t = Transaction()
-    parsed_t.ParseFromString(bytes.fromhex(t_hex))
+    parsed_t = Transaction.ParseFromString(bytes.fromhex(t_hex))
 
     assert parsed_t == t
     assert signature == t.signature
@@ -49,7 +55,9 @@ def test_transaction_fails_validation():
         sender=w.address,
         recipient=w2.address,
         amount=4.5,
+        nonce=0,
         public_key=w.public_key.hex(),
+        signature=None,
     )
 
     signature = w.sign_transaction(t)
@@ -57,8 +65,7 @@ def test_transaction_fails_validation():
 
     t_hex = t.SerializeToString().hex()
 
-    parsed_t = Transaction()
-    parsed_t.ParseFromString(bytes.fromhex(t_hex))
+    parsed_t = Transaction.ParseFromString(bytes.fromhex(t_hex))
 
     assert parsed_t == t
     assert signature == t.signature

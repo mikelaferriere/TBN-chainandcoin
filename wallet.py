@@ -19,7 +19,7 @@ from Crypto.Random import get_random_bytes
 
 import ecdsa
 
-from generated.transaction_pb2 import Transaction
+from transaction import Transaction
 
 logger = logging.getLogger(__name__)
 

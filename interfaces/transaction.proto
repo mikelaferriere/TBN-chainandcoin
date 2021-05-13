@@ -3,10 +3,10 @@ syntax = "proto3";
 package transaction;
 
 message Transaction {
-  string sender = 1;
-  string recipient = 2;
-  float amount = 3;
+  optional string sender = 1;
+  optional string recipient = 2;
+  optional float amount = 3;
   optional string signature = 4;
-  int32 nonce = 5;
-  string public_key = 6;
+  optional int32 nonce = 5;
+  optional string public_key = 6;
 }
