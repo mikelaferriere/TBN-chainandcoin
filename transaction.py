@@ -44,6 +44,9 @@ class Transaction(BaseModel):
         t = self.ToProtobuf()
         return t.SerializeToString()
 
+    def SerializeToHex(self) -> str:
+        return self.SerializeToString().hex()
+
     @staticmethod
     def ParseFromString(transaction_bytes: bytes) -> Any:
         t = transaction_pb2.Transaction()
@@ -57,3 +60,7 @@ class Transaction(BaseModel):
             public_key=t.public_key if t.public_key else None,
             signature=t.signature if t.signature else None,
         )
+
+    @staticmethod
+    def ParseFromHex(transaction_hex: str) -> Any:
+        return Transaction.ParseFromString(bytes.fromhex(transaction_hex))

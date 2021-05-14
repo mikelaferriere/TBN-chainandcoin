@@ -123,7 +123,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         :return: <str>
         """
 
-        return [c.SerializeToString().hex() for c in self.chain]
+        return [c.SerializeToHex() for c in self.chain]
 
     def __broadcast_transaction(self, transaction: Transaction) -> None:
         """
@@ -137,7 +137,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             try:
                 response = requests.post(
                     url,
-                    json={"transaction": transaction.SerializeToString().hex()},
+                    json={"transaction": transaction.SerializeToHex()},
                 )
                 if response.status_code == 400 or response.status_code == 500:
                     logger.error(
@@ -155,12 +155,13 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         This ensures synchronicity across all nodes on the network.
         """
+        logger.debug("Broadcasting blocks to following nodes: %s", self.nodes)
         for node in self.nodes:
             url = f"{node}/broadcast-block"
+            logger.debug("Broadcasting new block to %s", url)
+
             try:
-                response = requests.post(
-                    url, json={"block": block.SerializeToString().hex()}
-                )
+                response = requests.post(url, json={"block": block.SerializeToHex()})
                 if response.status_code == 400 or response.status_code == 500:
                     logger.error("Block declined, needs resolving: %s", response.json())
             except requests.exceptions.ConnectionError:
@@ -346,8 +347,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         block to make sure it is valid, and then add it to their chains.
 
         This also makes sure that there are not open transactions on any of the nodes
-        that match a transaction in the broadcasted block. This is some safety to ensure that
-        there is not double spending.
+        that match a transaction in the broadcasted block.
         """
         if not Verification.valid_nonce(
             block.nonce, block.transactions[:-1], block.previous_hash, 4
@@ -386,7 +386,10 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         parsed_url = urlparse(address)
         if not parsed_url.scheme:
             raise ValueError("Must provide scheme (http/https) in node uri")
-        self.nodes.add(f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}")
+        full_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+        self.nodes.add(full_url)
+        logger.debug("Registered node: %s", full_url)
+        self.resolve_conflicts()
 
     def resolve_conflicts(self) -> bool:
         """
@@ -395,6 +398,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         :return: <bool> True if our chain was replaces, False if not
         """
+
+        logger.debug("Resolving conflicts between the nodes if applicable")
 
         neighbours = self.nodes
         new_chain = None
@@ -413,17 +418,23 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                 chain = []
 
                 for b in chain_hashes:
-                    block = Block()
-                    block.ParseFromString(bytes.fromhex(b))
+                    block = Block.ParseFromHex(b)
                     chain.append(block)
+
+                if length == 1 and max_length == 1 and Verification.verify_chain(chain):
+                    logger.debug("Chain's are both 1 length so preferring neighbour's")
+                    max_length = length
+                    new_chain = chain
 
                 # Check if the length is longer and the chain is valid
                 if length > max_length and Verification.verify_chain(chain):
+                    logger.debug("Neighbour's chain is longer than ours")
                     max_length = length
                     new_chain = chain
 
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
+            logger.info("Replacing our chain with neighbour's chain")
             self.chain = new_chain
             return True
 

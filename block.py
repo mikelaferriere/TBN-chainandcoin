@@ -37,7 +37,7 @@ class Block(BaseModel):
             index=self.index,
             timestamp=timestamp,
             transaction_count=self.transaction_count,
-            transactions=[t.ToProtobuf() for t in self.transactions],
+            transactions=[t.SerializeToHex() for t in self.transactions],
             nonce=self.nonce,
             previous_hash=self.previous_hash,
             difficulty=self.difficulty,
@@ -45,6 +45,9 @@ class Block(BaseModel):
         )
 
         return b.SerializeToString()
+
+    def SerializeToHex(self) -> str:
+        return self.SerializeToString().hex()
 
     @staticmethod
     def ParseFromString(block_bytes: bytes) -> Any:
@@ -57,9 +60,13 @@ class Block(BaseModel):
             index=b.index,
             timestamp=b.timestamp.ToDatetime(),
             transaction_count=b.transaction_count,
-            transactions=[Transaction.ParseFromString(t) for t in transactions],
+            transactions=[Transaction.ParseFromHex(t) for t in transactions],
             nonce=b.nonce,
             previous_hash=b.previous_hash,
             difficulty=b.difficulty,
             version=b.version,
         )
+
+    @staticmethod
+    def ParseFromHex(block_hex: str) -> Any:
+        return Block.ParseFromString(bytes.fromhex(block_hex))

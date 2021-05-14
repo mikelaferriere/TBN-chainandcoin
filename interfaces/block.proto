@@ -9,7 +9,7 @@ message Block {
   optional int64 index = 1;
   optional google.protobuf.Timestamp timestamp = 2;
   optional int64 transaction_count = 3;
-  repeated transaction.Transaction transactions = 4;
+  repeated string transactions = 4;
   optional int64 nonce = 5;
   optional string previous_hash = 6;
   optional int64 difficulty = 7;

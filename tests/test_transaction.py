@@ -13,11 +13,11 @@ def test_transaction_to_protobuf_and_back():
         public_key="pub_key",
         signature=None,
     )
-    t_hex = t.SerializeToString().hex()
+    t_hex = t.SerializeToHex()
 
     assert t_hex == "0a0474657374120574657374321d00009040280032077075625f6b6579"
 
-    parsed_t = Transaction.ParseFromString(bytes.fromhex(t_hex))
+    parsed_t = Transaction.ParseFromHex(t_hex)
 
     assert parsed_t == t
 
@@ -38,9 +38,9 @@ def test_transaction_with_signature_to_protobuf_and_back():
     signature = w.sign_transaction(t)
     t.signature = signature
 
-    t_hex = t.SerializeToString().hex()
+    t_hex = t.SerializeToHex()
 
-    parsed_t = Transaction.ParseFromString(bytes.fromhex(t_hex))
+    parsed_t = Transaction.ParseFromHex(t_hex)
 
     assert parsed_t == t
     assert signature == t.signature
@@ -63,9 +63,9 @@ def test_transaction_fails_validation():
     signature = w.sign_transaction(t)
     t.signature = signature
 
-    t_hex = t.SerializeToString().hex()
+    t_hex = t.SerializeToHex()
 
-    parsed_t = Transaction.ParseFromString(bytes.fromhex(t_hex))
+    parsed_t = Transaction.ParseFromHex(t_hex)
 
     assert parsed_t == t
     assert signature == t.signature

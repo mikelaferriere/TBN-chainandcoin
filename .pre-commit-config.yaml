@@ -5,15 +5,15 @@ repos:
     hooks:
       - id: check-merge-conflict
       - id: debug-statements
-        stages: [push]
+        stages: [commit]
       - id: detect-private-key
-        stages: [push]
+        stages: [commit]
       - id: detect-aws-credentials
         stages: [push]
       - id: check-ast
         stages: [push]
       - id: trailing-whitespace
-        stages: [push]
+        stages: [commit]
   - repo: https://github.com/psf/black
     rev: "20.8b1"
     hooks:

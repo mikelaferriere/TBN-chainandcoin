@@ -47,10 +47,10 @@ def test_block_to_protobuf_and_back():
         version="0.1",
     )
 
-    p_genesis_block = genesis_block.SerializeToString().hex()
+    p_genesis_block = genesis_block.SerializeToHex()
     assert p_genesis_block == "0800120018002864320038044203302e31"
 
-    og_genesis_block = Block.ParseFromString(bytes.fromhex(p_genesis_block))
+    og_genesis_block = Block.ParseFromHex(p_genesis_block)
 
     assert og_genesis_block == Block(
         index=0,

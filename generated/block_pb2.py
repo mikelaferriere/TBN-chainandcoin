@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x15generated/block.proto\x12\x05\x62lock\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgenerated/transaction.proto\"\xe3\x02\n\x05\x42lock\x12\x12\n\x05index\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x32\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x01\x88\x01\x01\x12\x1e\n\x11transaction_count\x18\x03 \x01(\x03H\x02\x88\x01\x01\x12.\n\x0ctransactions\x18\x04 \x03(\x0b\x32\x18.transaction.Transaction\x12\x12\n\x05nonce\x18\x05 \x01(\x03H\x03\x88\x01\x01\x12\x1a\n\rprevious_hash\x18\x06 \x01(\tH\x04\x88\x01\x01\x12\x17\n\ndifficulty\x18\x07 \x01(\x03H\x05\x88\x01\x01\x12\x14\n\x07version\x18\x08 \x01(\tH\x06\x88\x01\x01\x42\x08\n\x06_indexB\x0c\n\n_timestampB\x14\n\x12_transaction_countB\x08\n\x06_nonceB\x10\n\x0e_previous_hashB\r\n\x0b_difficultyB\n\n\x08_versionb\x06proto3'
+  serialized_pb=b'\n\x15generated/block.proto\x12\x05\x62lock\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgenerated/transaction.proto\"\xc9\x02\n\x05\x42lock\x12\x12\n\x05index\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x32\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x01\x88\x01\x01\x12\x1e\n\x11transaction_count\x18\x03 \x01(\x03H\x02\x88\x01\x01\x12\x14\n\x0ctransactions\x18\x04 \x03(\t\x12\x12\n\x05nonce\x18\x05 \x01(\x03H\x03\x88\x01\x01\x12\x1a\n\rprevious_hash\x18\x06 \x01(\tH\x04\x88\x01\x01\x12\x17\n\ndifficulty\x18\x07 \x01(\x03H\x05\x88\x01\x01\x12\x14\n\x07version\x18\x08 \x01(\tH\x06\x88\x01\x01\x42\x08\n\x06_indexB\x0c\n\n_timestampB\x14\n\x12_transaction_countB\x08\n\x06_nonceB\x10\n\x0e_previous_hashB\r\n\x0b_difficultyB\n\n\x08_versionb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,generated_dot_transaction__pb2.DESCRIPTOR,])
 
@@ -59,7 +59,7 @@ _BLOCK = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='transactions', full_name='block.Block.transactions', index=3,
-      number=4, type=11, cpp_type=10, label=3,
+      number=4, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -140,11 +140,10 @@ _BLOCK = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=95,
-  serialized_end=450,
+  serialized_end=424,
 )
 
 _BLOCK.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
-_BLOCK.fields_by_name['transactions'].message_type = generated_dot_transaction__pb2._TRANSACTION
 _BLOCK.oneofs_by_name['_index'].fields.append(
   _BLOCK.fields_by_name['index'])
 _BLOCK.fields_by_name['index'].containing_oneof = _BLOCK.oneofs_by_name['_index']

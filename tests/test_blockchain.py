@@ -67,6 +67,46 @@ def test_mining_block_with_open_transactions():
     assert transaction_2 in chain_transactions
 
 
+def test_broadcasting_block():
+    node_id = uuid4()
+    w1 = Wallet(test=True)
+    w2 = Wallet(test=True)
+
+    chain1 = Blockchain(w1.address, node_id)
+    chain2 = Blockchain(w2.address, node_id)
+
+    chain2.chain = chain1.chain
+    assert chain1.chain == chain2.chain
+
+    transaction_1 = Transaction(
+        sender=w1.address,
+        recipient=w2.address,
+        nonce=0,
+        amount=0.5,
+        public_key=w1.public_key.hex(),
+    )
+    transaction_1.signature = w1.sign_transaction(transaction_1)
+
+    assert Verification.verify_chain(chain1.chain)
+    b = chain1.mine_block()
+
+    result, _ = chain2.add_block(b)
+    assert result
+
+    assert Verification.verify_chain(chain1.chain)
+    assert Verification.verify_chain(chain2.chain)
+
+    chain1.add_transaction(transaction_1, is_receiving=True)
+    chain2.add_transaction(transaction_1, is_receiving=True)
+    chain1.mine_block()
+    chain2.add_block(chain1.last_block)
+
+    assert Verification.verify_chain(chain1.chain)
+    assert Verification.verify_chain(chain2.chain)
+
+    assert chain1.chain == chain2.chain
+
+
 def test_not_enough_coin():
     node_id = uuid4()
     w = Wallet(test=True)
