@@ -135,6 +135,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         for node in self.nodes:
             url = f"{node}/broadcast-transaction"
             try:
+                logging.debug("Broadcasting new transaction %s to %s", transaction, url)
                 response = requests.post(
                     url,
                     json={"transaction": transaction.SerializeToHex()},
@@ -158,8 +159,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         logger.debug("Broadcasting blocks to following nodes: %s", self.nodes)
         for node in self.nodes:
             url = f"{node}/broadcast-block"
-            logger.debug("Broadcasting new block to %s", url)
-
+            logger.debug("Broadcasting new block %s to %s", block, url)
             try:
                 response = requests.post(url, json={"block": block.SerializeToHex()})
                 if response.status_code == 400 or response.status_code == 500:

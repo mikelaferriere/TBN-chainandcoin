@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\"\xdf\x01\n\x0bTransaction\x12\x13\n\x06sender\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x16\n\trecipient\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x06\x61mount\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x16\n\tsignature\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x12\n\x05nonce\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x17\n\npublic_key\x18\x06 \x01(\tH\x05\x88\x01\x01\x42\t\n\x07_senderB\x0c\n\n_recipientB\t\n\x07_amountB\x0c\n\n_signatureB\x08\n\x06_nonceB\r\n\x0b_public_keyb\x06proto3'
+  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\"\xdf\x01\n\x0bTransaction\x12\x13\n\x06sender\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x16\n\trecipient\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x06\x61mount\x18\x03 \x01(\x01H\x02\x88\x01\x01\x12\x16\n\tsignature\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x12\n\x05nonce\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x17\n\npublic_key\x18\x06 \x01(\tH\x05\x88\x01\x01\x42\t\n\x07_senderB\x0c\n\n_recipientB\t\n\x07_amountB\x0c\n\n_signatureB\x08\n\x06_nonceB\r\n\x0b_public_keyb\x06proto3'
 )
 
 
@@ -49,7 +49,7 @@ _TRANSACTION = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='amount', full_name='transaction.Transaction.amount', index=2,
-      number=3, type=2, cpp_type=6, label=1,
+      number=3, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,

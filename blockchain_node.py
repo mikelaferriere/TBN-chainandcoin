@@ -11,10 +11,11 @@ from flask import Flask, jsonify, request
 from blockchain import Blockchain
 from block import Block
 from transaction import Transaction
+from util.logging0 import configure_logging
 from wallet import Wallet
 
+configure_logging()
 
-logging.basicConfig(level=logging.INFO)
 
 # Instantiate the node
 app = Flask(__name__)

@@ -15,7 +15,7 @@ def test_transaction_to_protobuf_and_back():
     )
     t_hex = t.SerializeToHex()
 
-    assert t_hex == "0a0474657374120574657374321d00009040280032077075625f6b6579"
+    assert t_hex == "0a047465737412057465737432190000000000001240280032077075625f6b6579"
 
     parsed_t = Transaction.ParseFromHex(t_hex)
 
