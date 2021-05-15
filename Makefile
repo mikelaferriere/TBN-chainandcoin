@@ -32,5 +32,8 @@ generate-protobuf:
 	protoc interfaces/transaction.proto --python_out ./ --proto_path generated=./interfaces/ --experimental_allow_proto3_optional
 	protoc interfaces/block.proto --python_out ./ --proto_path generated=./interfaces/ --experimental_allow_proto3_optional
 
+install-node:
+	wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+
 .PHONY: \
 	help
