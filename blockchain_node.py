@@ -7,6 +7,7 @@ import os
 
 from uuid import uuid4
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from blockchain import Blockchain
 from block import Block
@@ -19,6 +20,9 @@ configure_logging()
 
 # Instantiate the node
 app = Flask(__name__)
+CORS(app)
+
+
 node_id = uuid4()
 
 IS_MASTERNODE = os.getenv("MASTERNODE") is not None
