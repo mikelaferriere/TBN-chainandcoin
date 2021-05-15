@@ -267,7 +267,10 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         return self.last_block.index + 1
 
     def mine_block(
-        self, address: Optional[str] = None, difficulty: Optional[int] = None
+        self,
+        address: Optional[str] = None,
+        difficulty: Optional[int] = None,
+        version: Optional[str] = None,
     ) -> Optional[Block]:
         """
         The current node runs the mining protocol, and depending on the difficulty, this
@@ -294,6 +297,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             return None
 
         difficulty = difficulty if difficulty is not None else self.difficulty
+        version = version if version is not None else self.version
 
         last_block = self.last_block
 
@@ -302,7 +306,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         # We run the PoW algorithm to get the next nonce
         nonce = Verification.proof_of_work(
-            last_block, self.get_open_transactions, difficulty
+            last_block, self.get_open_transactions, difficulty, version
         )
 
         # Create the transaction that will be rewarded to the miners for their work
@@ -350,7 +354,11 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         that match a transaction in the broadcasted block.
         """
         if not Verification.valid_nonce(
-            block.nonce, block.transactions[:-1], block.previous_hash, 4
+            block.nonce,
+            block.transactions[:-1],
+            block.previous_hash,
+            block.difficulty,
+            block.version,
         ):
             return False, "Nonce is not valid"
         if not Verification.hash_block(self.last_block) == block.previous_hash:

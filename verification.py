@@ -29,7 +29,11 @@ class Verification:
 
     @staticmethod
     def valid_nonce(
-        nonce: int, transactions: List[Transaction], previous_hash: str, difficulty: int
+        nonce: int,
+        transactions: List[Transaction],
+        previous_hash: str,
+        difficulty: int,
+        version: str,
     ) -> bool:
         """
         Validates the Nonce: Does the hash(nonce, block) contain <difficulty> leading zeros?
@@ -37,15 +41,21 @@ class Verification:
         :param transactions: List<Transaction> List of transactions in the block
         :param previous_hash: <str> hash of the previous block
         :param difficulty: <int> Difficulty of the proof of work
+        :param version: <str> version on the current block
         :return: <bool> True if correct, False if not
         """
-        guess = (str(transactions) + str(previous_hash) + str(nonce)).encode()
+        guess = (
+            str(transactions) + str(previous_hash) + str(nonce) + str(version)
+        ).encode()
         guess_hash = hash_bytes_256(guess)
         return guess_hash[:difficulty] == "0" * difficulty
 
     @staticmethod
     def proof_of_work(
-        last_block: Block, open_transactions: List[Transaction], difficulty: int
+        last_block: Block,
+        open_transactions: List[Transaction],
+        difficulty: int,
+        version: str,
     ) -> int:
         """
         Simple Proof of Work Algorithm
@@ -70,7 +80,7 @@ class Verification:
 
         nonce = 0
         while not Verification.valid_nonce(
-            nonce, open_transactions, previous_hash, difficulty
+            nonce, open_transactions, previous_hash, difficulty, version
         ):
             nonce += 1
 
@@ -108,7 +118,11 @@ class Verification:
                 index,
             )
             if not cls.valid_nonce(
-                block.nonce, block_transactions_sans_mining, block.previous_hash, 4
+                block.nonce,
+                block_transactions_sans_mining,
+                block.previous_hash,
+                block.difficulty,
+                block.version,
             ):
                 logger.error("Proof of work is invalid")
                 return False

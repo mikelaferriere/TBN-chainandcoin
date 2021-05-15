@@ -116,7 +116,9 @@ def test_correct_nonce():
         )
     ]
 
-    nonce = Verification.proof_of_work(block_one, open_transactions, 4)
+    nonce = Verification.proof_of_work(
+        block_one, open_transactions, block_one.difficulty, block_one.version
+    )
 
     timestamp = datetime.utcfromtimestamp(1)
 
@@ -132,5 +134,9 @@ def test_correct_nonce():
     )
 
     assert Verification.valid_nonce(
-        block_two.nonce, block_two.transactions, block_two.previous_hash, 4
+        block_two.nonce,
+        block_two.transactions,
+        block_two.previous_hash,
+        block_two.difficulty,
+        block_two.version,
     )
