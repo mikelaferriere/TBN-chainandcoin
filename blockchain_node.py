@@ -126,8 +126,7 @@ def block_by_hash(block_hash):
     Response :
       chain : Block
     """
-    block = Block()
-    block.ParseFromHex(block_hash)
+    block = Block.ParseFromHex(block_hash)
     response = {
         "index": block.index,
         "nonce": block.nonce,
@@ -155,8 +154,7 @@ def transaction_by_hash(transaction_hash):
     Response :
       chain : Transaction
     """
-    transaction = Transaction()
-    transaction.ParseFromHex(transaction_hash)
+    transaction = Transaction.ParseFromHex(transaction_hash)
     response = {
         "sender": transaction.sender,
         "recipient": transaction.recipient,
