@@ -9,12 +9,13 @@ from uuid import uuid4
 from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
-from generated.block_pb2 import Block  # type: ignore
-from generated.transaction_pb2 import Transaction  # type: ignore
+from block import Block
+from transaction import Transaction
+from util.logging0 import configure_logging
 from wallet import Wallet
 
+configure_logging()
 
-logging.basicConfig(level=logging.INFO)
 
 # Instantiate the node
 app = Flask(__name__)
@@ -126,13 +127,13 @@ def block_by_hash(block_hash):
       chain : Block
     """
     block = Block()
-    block.ParseFromString(bytes.fromhex(block_hash))
+    block.ParseFromHex(block_hash)
     response = {
         "index": block.index,
         "nonce": block.nonce,
         "previous_hash": block.previous_hash,
         "transaction_count": len(block.transactions),
-        "transactions": [t.SerializeToString().hex() for t in block.transactions],
+        "transactions": [t.SerializeToHex() for t in block.transactions],
         "difficulty": block.difficulty,
         "version": block.version,
     }
@@ -155,7 +156,7 @@ def transaction_by_hash(transaction_hash):
       chain : Transaction
     """
     transaction = Transaction()
-    transaction.ParseFromString(bytes.fromhex(transaction_hash))
+    transaction.ParseFromHex(transaction_hash)
     response = {
         "sender": transaction.sender,
         "recipient": transaction.recipient,
@@ -255,8 +256,7 @@ def broadcast_block():
     if "block" not in values:
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
-    block = Block()
-    block.ParseFromString(bytes.fromhex(values["block"]))
+    block = Block.ParseFromHex(values["block"])
     if block.index == blockchain.last_block.index + 1:
         added, message = blockchain.add_block(block)
         if added:
@@ -303,8 +303,7 @@ def broadcast_transaction():
     if not all(key in values for key in required):
         response = {"message": "Some data is missing."}
         return jsonify(response), 400
-    t = Transaction()
-    t.ParseFromString(bytes.fromhex(values["transaction"]))
+    t = Transaction.ParseFromHex(values["transaction"])
     success = blockchain.add_transaction(t, is_receiving=True)
     if success:
         response = {

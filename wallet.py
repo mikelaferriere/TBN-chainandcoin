@@ -19,7 +19,7 @@ from Crypto.Random import get_random_bytes
 
 import ecdsa
 
-from generated.transaction_pb2 import Transaction
+from transaction import Transaction
 
 logger = logging.getLogger(__name__)
 
@@ -269,23 +269,3 @@ class Wallet:
         except (ValueError, TypeError) as e:
             logger.exception(e)
             return False
-
-
-# if __name__ == "__main__":
-#     w = Wallet()
-#     w.login("test")
-
-
-#     t = Transaction(
-#         sender=w.address,
-#         recipient="test",
-#         nonce=0,
-#         amount=0.5,
-#         public_key=w.public_key.hex()
-#     )
-
-#     t.signature = w.sign_transaction(t)
-#     tx_hash = t.SerializeToString().hex()
-
-#     result = w.verify_transaction(tx_hash)
-#     print(result)

@@ -3,18 +3,18 @@ The blockchain (Really need to add a better description of what this is)
 """
 from functools import reduce
 
+from time import time
+
 from urllib.parse import urlparse
 from uuid import UUID
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 import logging
 import requests
 
-from google.protobuf.timestamp_pb2 import Timestamp
-
-from generated.block_pb2 import Block
-from generated.transaction_pb2 import Transaction
+from block import Block
+from transaction import Transaction
 from verification import Verification
 from wallet import Wallet
 
@@ -43,8 +43,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
     ) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
-        self.__open_transactions = []  # type: List[Any]
-        self.nodes = set()  # type: Set[Any]
+        self.__open_transactions = []  # type: List[Transaction]
+        self.nodes = set()  # type: Set[str]
         self.difficulty = difficulty
         self.address = address
         self.version = version
@@ -52,7 +52,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Create the 'genesis' block. This is the inital block.
         genesis_block = Block(
             index=0,
-            timestamp=Timestamp().GetCurrentTime(),  # type: ignore
+            timestamp=time(),  # type: ignore
             transaction_count=0,
             transactions=[],
             nonce=100,
@@ -64,7 +64,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.chain = [genesis_block]
 
     @property
-    def chain(self) -> List[Any]:
+    def chain(self) -> List[Block]:
         """
         This turns the chain attribute into a property with a getter (the method below)
         and a setter (@chain.setter)
@@ -75,7 +75,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         return self.__chain[:]
 
     @chain.setter
-    def chain(self, val: List[Any]) -> None:
+    def chain(self, val: List[Block]) -> None:
         """
         Setter function to directly set the value of the chain. This is only used when
         re-aligning the chain with the rest of the network, and setting up the genesis block.
@@ -89,7 +89,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         """
         return len(self.__chain)
 
-    def add_block_to_chain(self, block: Any) -> None:
+    def add_block_to_chain(self, block: Block) -> None:
         """
         Adds the current block to the chain. By this time, it has been fully verified and
         the chain will be valid once it is added
@@ -97,14 +97,14 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.__chain.append(block)
 
     @property
-    def get_open_transactions(self) -> List[Any]:
+    def get_open_transactions(self) -> List[Transaction]:
         """
         Return a copy of the list of transactions that have not yet been mined
         """
         return self.__open_transactions[:]
 
     @property
-    def last_block(self) -> Any:
+    def last_block(self) -> Block:
         """
         Returns the last block in the chain
         """
@@ -117,15 +117,15 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         """
         return len(self.__chain)
 
-    def pretty_chain(self) -> List[Dict]:
+    def pretty_chain(self) -> List[str]:
         """
         Returns the full Blockchain in a nicely formatted string
         :return: <str>
         """
 
-        return [c.SerializeToString().hex() for c in self.chain]
+        return [c.SerializeToHex() for c in self.chain]
 
-    def __broadcast_transaction(self, transaction: Any) -> None:
+    def __broadcast_transaction(self, transaction: Transaction) -> None:
         """
         Broadcast the current transaction to all nodes on the network that this node
         is aware of.
@@ -135,9 +135,10 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         for node in self.nodes:
             url = f"{node}/broadcast-transaction"
             try:
+                logging.debug("Broadcasting new transaction %s to %s", transaction, url)
                 response = requests.post(
                     url,
-                    json={"transaction": transaction.SerializeToString().hex()},
+                    json={"transaction": transaction.SerializeToHex()},
                 )
                 if response.status_code == 400 or response.status_code == 500:
                     logger.error(
@@ -146,7 +147,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             except requests.exceptions.ConnectionError:
                 continue
 
-    def __broadcast_block(self, block: Any) -> None:
+    def __broadcast_block(self, block: Block) -> None:
         """
         Broadcast the current block to all nodes on the network that this node
         is aware of.
@@ -155,12 +156,12 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         This ensures synchronicity across all nodes on the network.
         """
+        logger.debug("Broadcasting blocks to following nodes: %s", self.nodes)
         for node in self.nodes:
             url = f"{node}/broadcast-block"
+            logger.debug("Broadcasting new block %s to %s", block, url)
             try:
-                response = requests.post(
-                    url, json={"block": block.SerializeToString().hex()}
-                )
+                response = requests.post(url, json={"block": block.SerializeToHex()})
                 if response.status_code == 400 or response.status_code == 500:
                     logger.error("Block declined, needs resolving: %s", response.json())
             except requests.exceptions.ConnectionError:
@@ -238,7 +239,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Return the total balance
         return amount_received - amount_sent
 
-    def add_transaction(self, transaction: Any, is_receiving: bool = False) -> int:
+    def add_transaction(
+        self, transaction: Transaction, is_receiving: bool = False
+    ) -> int:
         """
         Creates a new transaction to go into the next mined Block
         :param transaction: <Transaction>
@@ -265,7 +268,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
     def mine_block(
         self, address: Optional[str] = None, difficulty: Optional[int] = None
-    ) -> Optional[Any]:
+    ) -> Optional[Block]:
         """
         The current node runs the mining protocol, and depending on the difficulty, this
         could take a lot of processing power.
@@ -319,7 +322,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         copied_open_transactions.append(reward_transaction)
         block = Block(
             index=self.next_index,
-            timestamp=Timestamp().GetCurrentTime(),  # type: ignore
+            timestamp=time(),
             transaction_count=len(copied_open_transactions),
             transactions=copied_open_transactions,
             nonce=nonce,
@@ -338,14 +341,13 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         return block
 
-    def add_block(self, block: Any) -> Tuple[bool, Optional[str]]:
+    def add_block(self, block: Block) -> Tuple[bool, Optional[str]]:
         """
         When a new block is received via a broadcast, the receiving nodes must validate the
         block to make sure it is valid, and then add it to their chains.
 
         This also makes sure that there are not open transactions on any of the nodes
-        that match a transaction in the broadcasted block. This is some safety to ensure that
-        there is not double spending.
+        that match a transaction in the broadcasted block.
         """
         if not Verification.valid_nonce(
             block.nonce, block.transactions[:-1], block.previous_hash, 4
@@ -384,7 +386,10 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         parsed_url = urlparse(address)
         if not parsed_url.scheme:
             raise ValueError("Must provide scheme (http/https) in node uri")
-        self.nodes.add(f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}")
+        full_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+        self.nodes.add(full_url)
+        logger.debug("Registered node: %s", full_url)
+        self.resolve_conflicts()
 
     def resolve_conflicts(self) -> bool:
         """
@@ -393,6 +398,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         :return: <bool> True if our chain was replaces, False if not
         """
+
+        logger.debug("Resolving conflicts between the nodes if applicable")
 
         neighbours = self.nodes
         new_chain = None
@@ -411,17 +418,23 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                 chain = []
 
                 for b in chain_hashes:
-                    block = Block()
-                    block.ParseFromString(bytes.fromhex(b))
+                    block = Block.ParseFromHex(b)
                     chain.append(block)
+
+                if length == 1 and max_length == 1 and Verification.verify_chain(chain):
+                    logger.debug("Chain's are both 1 length so preferring neighbour's")
+                    max_length = length
+                    new_chain = chain
 
                 # Check if the length is longer and the chain is valid
                 if length > max_length and Verification.verify_chain(chain):
+                    logger.debug("Neighbour's chain is longer than ours")
                     max_length = length
                     new_chain = chain
 
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
+            logger.info("Replacing our chain with neighbour's chain")
             self.chain = new_chain
             return True
 

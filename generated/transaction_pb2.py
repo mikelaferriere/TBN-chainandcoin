@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\"\x89\x01\n\x0bTransaction\x12\x0e\n\x06sender\x18\x01 \x01(\t\x12\x11\n\trecipient\x18\x02 \x01(\t\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x02\x12\x16\n\tsignature\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\r\n\x05nonce\x18\x05 \x01(\x05\x12\x12\n\npublic_key\x18\x06 \x01(\tB\x0c\n\n_signatureb\x06proto3'
+  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\"\xdf\x01\n\x0bTransaction\x12\x13\n\x06sender\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x16\n\trecipient\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x06\x61mount\x18\x03 \x01(\x01H\x02\x88\x01\x01\x12\x16\n\tsignature\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x12\n\x05nonce\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x17\n\npublic_key\x18\x06 \x01(\tH\x05\x88\x01\x01\x42\t\n\x07_senderB\x0c\n\n_recipientB\t\n\x07_amountB\x0c\n\n_signatureB\x08\n\x06_nonceB\r\n\x0b_public_keyb\x06proto3'
 )
 
 
@@ -49,7 +49,7 @@ _TRANSACTION = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='amount', full_name='transaction.Transaction.amount', index=2,
-      number=3, type=2, cpp_type=6, label=1,
+      number=3, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -87,18 +87,58 @@ _TRANSACTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
     _descriptor.OneofDescriptor(
-      name='_signature', full_name='transaction.Transaction._signature',
+      name='_sender', full_name='transaction.Transaction._sender',
       index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_recipient', full_name='transaction.Transaction._recipient',
+      index=1, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_amount', full_name='transaction.Transaction._amount',
+      index=2, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_signature', full_name='transaction.Transaction._signature',
+      index=3, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_nonce', full_name='transaction.Transaction._nonce',
+      index=4, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_public_key', full_name='transaction.Transaction._public_key',
+      index=5, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
   serialized_start=45,
-  serialized_end=182,
+  serialized_end=268,
 )
 
+_TRANSACTION.oneofs_by_name['_sender'].fields.append(
+  _TRANSACTION.fields_by_name['sender'])
+_TRANSACTION.fields_by_name['sender'].containing_oneof = _TRANSACTION.oneofs_by_name['_sender']
+_TRANSACTION.oneofs_by_name['_recipient'].fields.append(
+  _TRANSACTION.fields_by_name['recipient'])
+_TRANSACTION.fields_by_name['recipient'].containing_oneof = _TRANSACTION.oneofs_by_name['_recipient']
+_TRANSACTION.oneofs_by_name['_amount'].fields.append(
+  _TRANSACTION.fields_by_name['amount'])
+_TRANSACTION.fields_by_name['amount'].containing_oneof = _TRANSACTION.oneofs_by_name['_amount']
 _TRANSACTION.oneofs_by_name['_signature'].fields.append(
   _TRANSACTION.fields_by_name['signature'])
 _TRANSACTION.fields_by_name['signature'].containing_oneof = _TRANSACTION.oneofs_by_name['_signature']
+_TRANSACTION.oneofs_by_name['_nonce'].fields.append(
+  _TRANSACTION.fields_by_name['nonce'])
+_TRANSACTION.fields_by_name['nonce'].containing_oneof = _TRANSACTION.oneofs_by_name['_nonce']
+_TRANSACTION.oneofs_by_name['_public_key'].fields.append(
+  _TRANSACTION.fields_by_name['public_key'])
+_TRANSACTION.fields_by_name['public_key'].containing_oneof = _TRANSACTION.oneofs_by_name['_public_key']
 DESCRIPTOR.message_types_by_name['Transaction'] = _TRANSACTION
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
