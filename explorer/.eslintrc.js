@@ -1,0 +1,46 @@
+module.exports = {
+  root: true,
+  parser: "@typescript-eslint/parser",
+  plugins: [
+    "@typescript-eslint",
+    "jest"
+  ],
+  extends: [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:jest/recommended"
+  ],
+  rules: {
+    "@typescript-eslint/camelcase": "off",
+    "@typescript-eslint/consistent-type-assertions": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-this-alias": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-use-before-define": "off",
+    "no-cond-assign": "off",
+    "no-constant-condition": "off",
+    "no-control-regex": "off",
+    "no-empty": "off",
+    "no-fallthrough": "off",
+    "no-func-assign": "off",
+    "no-misleading-character-class": "off",
+    "no-mixed-spaces-and-tabs": "off",
+    "no-prototype-builtins": "off",
+    "no-redeclare": "off",
+    "no-self-assign": "off",
+    "no-sparse-arrays": "off",
+    "no-undef": "off",
+    "no-unused-vars": "off",
+    "no-unreachable": "off",
+    "no-unsafe-finally": "off",
+    "no-useless-catch": "off",
+    "no-useless-escape": "off",
+    "no-var": "off",
+    "prefer-const": "off",
+    "prefer-rest-params": "off",
+    "prefer-spread": "off",
+    "valid-typeof": "off",
+  }
+}
