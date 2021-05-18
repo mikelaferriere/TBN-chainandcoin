@@ -1,5 +1,9 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any, List, Optional
 from pydantic import BaseModel
+
+import merkletools
 
 from generated import transaction_pb2
 
@@ -40,6 +44,17 @@ class Transaction(BaseModel):
             signature=self.signature,
         )
 
+    @staticmethod
+    def FromProtobuf(transaction: Any) -> Transaction:
+        return Transaction(
+            sender=transaction.sender,
+            recipient=transaction.recipient,
+            amount=transaction.amount,
+            nonce=transaction.nonce,
+            public_key=transaction.public_key if transaction.public_key else None,
+            signature=transaction.signature if transaction.signature else None,
+        )
+
     def SerializeToString(self) -> bytes:
         t = self.ToProtobuf()
         return t.SerializeToString()
@@ -48,7 +63,7 @@ class Transaction(BaseModel):
         return self.SerializeToString().hex()
 
     @staticmethod
-    def ParseFromString(transaction_bytes: bytes) -> Any:
+    def ParseFromString(transaction_bytes: bytes) -> Transaction:
         t = transaction_pb2.Transaction()
         t.ParseFromString(transaction_bytes)
 
@@ -62,5 +77,19 @@ class Transaction(BaseModel):
         )
 
     @staticmethod
-    def ParseFromHex(transaction_hex: str) -> Any:
+    def ParseFromHex(transaction_hex: str) -> Transaction:
         return Transaction.ParseFromString(bytes.fromhex(transaction_hex))
+
+    @staticmethod
+    def convert_to_merkle(transactions: List[Transaction]) -> merkletools.MerkleTools:
+        mt = merkletools.MerkleTools(hash_type="sha256")
+
+        mt.add_leaf([t.SerializeToHex() for t in transactions])
+        mt.make_tree()
+
+        return mt
+
+    @staticmethod
+    def get_merkle_root(transactions: List[Transaction]) -> str:
+        merkle = Transaction.convert_to_merkle(transactions).get_merkle_root()
+        return merkle if merkle is not None else ""

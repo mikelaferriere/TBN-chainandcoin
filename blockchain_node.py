@@ -10,7 +10,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from blockchain import Blockchain
-from block import Block
+from block import BlockV2 as Block
 from transaction import Transaction
 from util.logging0 import configure_logging
 from wallet import Wallet
@@ -133,12 +133,15 @@ def block_by_hash(block_hash):
     block = Block.ParseFromHex(block_hash)
     response = {
         "index": block.index,
-        "nonce": block.nonce,
-        "previous_hash": block.previous_hash,
+        "header": {
+            "nonce": block.header.nonce,
+            "previous_hash": block.header.previous_hash,
+            "difficulty": block.header.difficulty,
+            "version": block.header.version,
+            "transaction_merkle_root": block.header.transaction_merkle_root,
+        },
         "transaction_count": len(block.transactions),
         "transactions": [t.SerializeToHex() for t in block.transactions],
-        "difficulty": block.difficulty,
-        "version": block.version,
     }
     return jsonify(response), 200
 
