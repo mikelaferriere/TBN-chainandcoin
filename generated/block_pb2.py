@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x15generated/block.proto\x12\x05\x62lock\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgenerated/transaction.proto\"\xa2\x02\n\x06Header\x12\x14\n\x07version\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12\x1a\n\rprevious_hash\x18\x02 \x01(\tH\x01\x88\x01\x01\x12$\n\x17transaction_merkle_root\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x32\n\ttimestamp\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x03\x88\x01\x01\x12\x17\n\ndifficulty\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x12\n\x05nonce\x18\x06 \x01(\x03H\x05\x88\x01\x01\x42\n\n\x08_versionB\x10\n\x0e_previous_hashB\x1a\n\x18_transaction_merkle_rootB\x0c\n\n_timestampB\r\n\x0b_difficultyB\x08\n\x06_nonce\"\x80\x02\n\x07\x42lockV2\x12\x12\n\x05index\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x11\n\x04size\x18\x02 \x01(\x05H\x01\x88\x01\x01\x12\x17\n\nblock_hash\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\"\n\x06header\x18\x04 \x01(\x0b\x32\r.block.HeaderH\x03\x88\x01\x01\x12\x1e\n\x11transaction_count\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12.\n\x0ctransactions\x18\x06 \x03(\x0b\x32\x18.transaction.TransactionB\x08\n\x06_indexB\x07\n\x05_sizeB\r\n\x0b_block_hashB\t\n\x07_headerB\x14\n\x12_transaction_count\"\xcf\x03\n\x05\x42lock\x12\x12\n\x05index\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x32\n\ttimestamp\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x01\x88\x01\x01\x12\x1e\n\x11transaction_count\x18\x03 \x01(\x03H\x02\x88\x01\x01\x12\x14\n\x0ctransactions\x18\x04 \x03(\t\x12\x12\n\x05nonce\x18\x05 \x01(\x03H\x03\x88\x01\x01\x12\x1a\n\rprevious_hash\x18\x06 \x01(\tH\x04\x88\x01\x01\x12\x17\n\ndifficulty\x18\x07 \x01(\x03H\x05\x88\x01\x01\x12\x14\n\x07version\x18\x08 \x01(\tH\x06\x88\x01\x01\x12\x11\n\x04size\x18\t \x01(\x03H\x07\x88\x01\x01\x12\x17\n\nblock_hash\x18\n \x01(\tH\x08\x88\x01\x01\x12$\n\x17transaction_merkle_root\x18\x0b \x01(\tH\t\x88\x01\x01\x42\x08\n\x06_indexB\x0c\n\n_timestampB\x14\n\x12_transaction_countB\x08\n\x06_nonceB\x10\n\x0e_previous_hashB\r\n\x0b_difficultyB\n\n\x08_versionB\x07\n\x05_sizeB\r\n\x0b_block_hashB\x1a\n\x18_transaction_merkle_rootb\x06proto3'
+  serialized_pb=b'\n\x15generated/block.proto\x12\x05\x62lock\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgenerated/transaction.proto\"\xa2\x02\n\x06Header\x12\x14\n\x07version\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12\x1a\n\rprevious_hash\x18\x02 \x01(\tH\x01\x88\x01\x01\x12$\n\x17transaction_merkle_root\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x32\n\ttimestamp\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x03\x88\x01\x01\x12\x17\n\ndifficulty\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x12\n\x05nonce\x18\x06 \x01(\x03H\x05\x88\x01\x01\x42\n\n\x08_versionB\x10\n\x0e_previous_hashB\x1a\n\x18_transaction_merkle_rootB\x0c\n\n_timestampB\r\n\x0b_difficultyB\x08\n\x06_nonce\"\x80\x02\n\x07\x42lockV2\x12\x12\n\x05index\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x11\n\x04size\x18\x02 \x01(\x05H\x01\x88\x01\x01\x12\x17\n\nblock_hash\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\"\n\x06header\x18\x04 \x01(\x0b\x32\r.block.HeaderH\x03\x88\x01\x01\x12\x1e\n\x11transaction_count\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12.\n\x0ctransactions\x18\x06 \x03(\x0b\x32\x18.transaction.TransactionB\x08\n\x06_indexB\x07\n\x05_sizeB\r\n\x0b_block_hashB\t\n\x07_headerB\x14\n\x12_transaction_countb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,generated_dot_transaction__pb2.DESCRIPTOR,])
 
@@ -216,158 +216,6 @@ _BLOCKV2 = _descriptor.Descriptor(
   serialized_end=644,
 )
 
-
-_BLOCK = _descriptor.Descriptor(
-  name='Block',
-  full_name='block.Block',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='index', full_name='block.Block.index', index=0,
-      number=1, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='timestamp', full_name='block.Block.timestamp', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='transaction_count', full_name='block.Block.transaction_count', index=2,
-      number=3, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='transactions', full_name='block.Block.transactions', index=3,
-      number=4, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='nonce', full_name='block.Block.nonce', index=4,
-      number=5, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='previous_hash', full_name='block.Block.previous_hash', index=5,
-      number=6, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='difficulty', full_name='block.Block.difficulty', index=6,
-      number=7, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='version', full_name='block.Block.version', index=7,
-      number=8, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='size', full_name='block.Block.size', index=8,
-      number=9, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='block_hash', full_name='block.Block.block_hash', index=9,
-      number=10, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='transaction_merkle_root', full_name='block.Block.transaction_merkle_root', index=10,
-      number=11, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-    _descriptor.OneofDescriptor(
-      name='_index', full_name='block.Block._index',
-      index=0, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_timestamp', full_name='block.Block._timestamp',
-      index=1, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_transaction_count', full_name='block.Block._transaction_count',
-      index=2, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_nonce', full_name='block.Block._nonce',
-      index=3, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_previous_hash', full_name='block.Block._previous_hash',
-      index=4, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_difficulty', full_name='block.Block._difficulty',
-      index=5, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_version', full_name='block.Block._version',
-      index=6, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_size', full_name='block.Block._size',
-      index=7, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_block_hash', full_name='block.Block._block_hash',
-      index=8, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-    _descriptor.OneofDescriptor(
-      name='_transaction_merkle_root', full_name='block.Block._transaction_merkle_root',
-      index=9, containing_type=None,
-      create_key=_descriptor._internal_create_key,
-    fields=[]),
-  ],
-  serialized_start=647,
-  serialized_end=1110,
-)
-
 _HEADER.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _HEADER.oneofs_by_name['_version'].fields.append(
   _HEADER.fields_by_name['version'])
@@ -404,40 +252,8 @@ _BLOCKV2.fields_by_name['header'].containing_oneof = _BLOCKV2.oneofs_by_name['_h
 _BLOCKV2.oneofs_by_name['_transaction_count'].fields.append(
   _BLOCKV2.fields_by_name['transaction_count'])
 _BLOCKV2.fields_by_name['transaction_count'].containing_oneof = _BLOCKV2.oneofs_by_name['_transaction_count']
-_BLOCK.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
-_BLOCK.oneofs_by_name['_index'].fields.append(
-  _BLOCK.fields_by_name['index'])
-_BLOCK.fields_by_name['index'].containing_oneof = _BLOCK.oneofs_by_name['_index']
-_BLOCK.oneofs_by_name['_timestamp'].fields.append(
-  _BLOCK.fields_by_name['timestamp'])
-_BLOCK.fields_by_name['timestamp'].containing_oneof = _BLOCK.oneofs_by_name['_timestamp']
-_BLOCK.oneofs_by_name['_transaction_count'].fields.append(
-  _BLOCK.fields_by_name['transaction_count'])
-_BLOCK.fields_by_name['transaction_count'].containing_oneof = _BLOCK.oneofs_by_name['_transaction_count']
-_BLOCK.oneofs_by_name['_nonce'].fields.append(
-  _BLOCK.fields_by_name['nonce'])
-_BLOCK.fields_by_name['nonce'].containing_oneof = _BLOCK.oneofs_by_name['_nonce']
-_BLOCK.oneofs_by_name['_previous_hash'].fields.append(
-  _BLOCK.fields_by_name['previous_hash'])
-_BLOCK.fields_by_name['previous_hash'].containing_oneof = _BLOCK.oneofs_by_name['_previous_hash']
-_BLOCK.oneofs_by_name['_difficulty'].fields.append(
-  _BLOCK.fields_by_name['difficulty'])
-_BLOCK.fields_by_name['difficulty'].containing_oneof = _BLOCK.oneofs_by_name['_difficulty']
-_BLOCK.oneofs_by_name['_version'].fields.append(
-  _BLOCK.fields_by_name['version'])
-_BLOCK.fields_by_name['version'].containing_oneof = _BLOCK.oneofs_by_name['_version']
-_BLOCK.oneofs_by_name['_size'].fields.append(
-  _BLOCK.fields_by_name['size'])
-_BLOCK.fields_by_name['size'].containing_oneof = _BLOCK.oneofs_by_name['_size']
-_BLOCK.oneofs_by_name['_block_hash'].fields.append(
-  _BLOCK.fields_by_name['block_hash'])
-_BLOCK.fields_by_name['block_hash'].containing_oneof = _BLOCK.oneofs_by_name['_block_hash']
-_BLOCK.oneofs_by_name['_transaction_merkle_root'].fields.append(
-  _BLOCK.fields_by_name['transaction_merkle_root'])
-_BLOCK.fields_by_name['transaction_merkle_root'].containing_oneof = _BLOCK.oneofs_by_name['_transaction_merkle_root']
 DESCRIPTOR.message_types_by_name['Header'] = _HEADER
 DESCRIPTOR.message_types_by_name['BlockV2'] = _BLOCKV2
-DESCRIPTOR.message_types_by_name['Block'] = _BLOCK
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Header = _reflection.GeneratedProtocolMessageType('Header', (_message.Message,), {
@@ -453,13 +269,6 @@ BlockV2 = _reflection.GeneratedProtocolMessageType('BlockV2', (_message.Message,
   # @@protoc_insertion_point(class_scope:block.BlockV2)
   })
 _sym_db.RegisterMessage(BlockV2)
-
-Block = _reflection.GeneratedProtocolMessageType('Block', (_message.Message,), {
-  'DESCRIPTOR' : _BLOCK,
-  '__module__' : 'generated.block_pb2'
-  # @@protoc_insertion_point(class_scope:block.Block)
-  })
-_sym_db.RegisterMessage(Block)
 
 
 # @@protoc_insertion_point(module_scope)

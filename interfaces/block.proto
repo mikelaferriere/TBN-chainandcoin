@@ -22,18 +22,3 @@ message BlockV2 {
   optional int32 transaction_count = 5;
   repeated transaction.Transaction transactions = 6;
 }
-
-
-message Block {
-  optional int64 index = 1;
-  optional google.protobuf.Timestamp timestamp = 2;
-  optional int64 transaction_count = 3;
-  repeated string transactions = 4;
-  optional int64 nonce = 5;
-  optional string previous_hash = 6;
-  optional int64 difficulty = 7;
-  optional string version = 8;
-  optional int64 size = 9;
-  optional string block_hash = 10;
-  optional string transaction_merkle_root = 11;
-}
