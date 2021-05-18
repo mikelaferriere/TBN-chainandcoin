@@ -14,7 +14,7 @@ message Header {
   optional int64 nonce = 6;
 }
 
-message BlockV2 {
+message Block {
   optional int64 index = 1;
   optional int32 size = 2;
   optional string block_hash = 3;

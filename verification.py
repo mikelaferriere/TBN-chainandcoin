@@ -3,7 +3,7 @@ import hashlib
 
 from typing import Callable, List
 
-from block import BlockV2 as Block
+from block import Block
 
 from transaction import Transaction
 from wallet import Wallet

@@ -13,7 +13,7 @@ from typing import List, Optional, Set, Tuple
 import logging
 import requests
 
-from block import BlockV2 as Block
+from block import Block
 from block import Header
 from transaction import Transaction
 from verification import Verification

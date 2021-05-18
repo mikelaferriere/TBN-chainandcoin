@@ -10,7 +10,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from blockchain import Blockchain
-from block import BlockV2 as Block
+from block import Block
 from transaction import Transaction
 from util.logging0 import configure_logging
 from wallet import Wallet

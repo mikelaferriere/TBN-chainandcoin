@@ -89,7 +89,7 @@ class Header(BaseModel):
         return Header.ParseFromString(bytes.fromhex(header_hex))
 
 
-class BlockV2(BaseModel):
+class Block(BaseModel):
     """
     index : <int> The location of the block in the chain (0 indexed)
     header : <Header> Block's header information
@@ -110,7 +110,7 @@ class BlockV2(BaseModel):
         timestamp = Timestamp()
         timestamp.FromDatetime(self.header.timestamp)
 
-        block = block_pb2.BlockV2(
+        block = block_pb2.Block(
             index=self.index,
             size=self.size,
             block_hash=self.block_hash,
@@ -132,11 +132,11 @@ class BlockV2(BaseModel):
         return self.SerializeToString().hex()
 
     @staticmethod
-    def ParseFromString(block_bytes: bytes) -> BlockV2:
-        block = block_pb2.BlockV2()
+    def ParseFromString(block_bytes: bytes) -> Block:
+        block = block_pb2.Block()
         block.ParseFromString(block_bytes)
 
-        return BlockV2(
+        return Block(
             index=block.index,
             size=block.size,
             block_hash=block.block_hash,
@@ -146,5 +146,5 @@ class BlockV2(BaseModel):
         )
 
     @staticmethod
-    def ParseFromHex(block_hex: str) -> BlockV2:
-        return BlockV2.ParseFromString(bytes.fromhex(block_hex))
+    def ParseFromHex(block_hex: str) -> Block:
+        return Block.ParseFromString(bytes.fromhex(block_hex))
