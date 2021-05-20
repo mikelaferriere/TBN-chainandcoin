@@ -6,7 +6,7 @@ from transaction import Transaction
 
 
 def test_block_format():
-    timestamp = datetime.utcfromtimestamp(0).timestamp()
+    timestamp = datetime.utcfromtimestamp(0)
     transactions = []
 
     Block(

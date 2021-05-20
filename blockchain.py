@@ -40,7 +40,13 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
     """
 
     def __init__(
-        self, address: str, node_id: UUID, difficulty: int = 4, version: int = 1
+        self,
+        address: str,
+        node_id: UUID,
+        *,
+        difficulty: int = 4,
+        version: int = 1,
+        timestamp: float = time(),
     ) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
@@ -55,7 +61,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         genesis_block = Block(
             index=0,
             header=Header(
-                timestamp=time(),
+                timestamp=timestamp,
                 transaction_merkle_root=Transaction.get_merkle_root(transactions),
                 nonce=100,
                 previous_hash="",

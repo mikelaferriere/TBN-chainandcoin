@@ -39,9 +39,15 @@ class Header(BaseModel):
 
     @staticmethod
     def FromProtobuf(header: Any) -> Header:
-        timestamp = datetime.strptime(
-            header.timestamp.ToJsonString(), "%Y-%m-%dT%H:%M:%SZ"
-        )
+        try:
+            # This format only exists in testing specifically.
+            timestamp = datetime.strptime(
+                header.timestamp.ToJsonString(), "%Y-%m-%dT%H:%M:%SZ"
+            )
+        except ValueError:
+            timestamp = datetime.strptime(
+                header.timestamp.ToJsonString(), "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
 
         return Header(
             version=header.version,
