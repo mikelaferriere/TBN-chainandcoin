@@ -13,7 +13,8 @@ from typing import List, Optional, Set, Tuple
 import logging
 import requests
 
-from block import Block, Header
+from block import Block
+from block import Header
 from transaction import Transaction
 from verification import Verification
 from wallet import Wallet
@@ -308,21 +309,18 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         difficulty = difficulty if difficulty is not None else self.difficulty
         version = version if version is not None else self.version
+
         last_block = self.last_block
 
-        block_header = Header(
-            version=version,
-            difficulty=difficulty,
-            timestamp=time(),
-            transaction_merkle_root=Transaction.get_merkle_root(
-                self.get_open_transactions
-            ),
-            previous_hash=Verification.hash_block(last_block),
-            nonce=0,
-        )
+        # Hash the last Block so we can compare it to the stored value
+        previous_hash = Verification.hash_block(last_block)
 
-        # We run the PoW algorithm to get the next nonce and return an updated block_header
-        block_header = Verification.proof_of_work(block_header)
+        tx_merkle_root = Transaction.get_merkle_root(self.get_open_transactions)
+
+        # We run the PoW algorithm to get the next nonce
+        nonce = Verification.proof_of_work(
+            last_block, self.get_open_transactions, difficulty, version
+        )
 
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
@@ -341,7 +339,14 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         copied_open_transactions.append(reward_transaction)
         block = Block(
             index=self.next_index,
-            header=block_header,
+            header=Header(
+                timestamp=time(),
+                nonce=nonce,
+                previous_hash=previous_hash,
+                difficulty=difficulty,
+                version=self.version,
+                transaction_merkle_root=tx_merkle_root,
+            ),
             transaction_count=len(copied_open_transactions),
             transactions=copied_open_transactions,
         )
@@ -364,7 +369,13 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         This also makes sure that there are not open transactions on any of the nodes
         that match a transaction in the broadcasted block.
         """
-        if not Verification.valid_nonce(block.header):
+        if not Verification.valid_nonce(
+            block.header.nonce,
+            block.transactions[:-1],
+            block.header.previous_hash,
+            block.header.difficulty,
+            block.header.version,
+        ):
             return False, "Nonce is not valid"
         if not Verification.hash_block(self.last_block) == block.header.previous_hash:
             return (

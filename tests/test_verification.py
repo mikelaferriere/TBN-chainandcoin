@@ -131,22 +131,35 @@ def test_correct_nonce():
         )
     ]
 
-    block_header = Header(
-        version=1,
-        difficulty=4,
-        timestamp=datetime.utcfromtimestamp(1),
-        transaction_merkle_root=Transaction.get_merkle_root(open_transactions),
-        previous_hash=previous_hash,
-        nonce=0,
+    nonce = Verification.proof_of_work(
+        block_one,
+        open_transactions,
+        block_one.header.difficulty,
+        block_one.header.version,
     )
 
-    block_header = Verification.proof_of_work(block_header)
+    timestamp = datetime.utcfromtimestamp(1)
+
+    tx_merkle_root = Transaction.get_merkle_root(open_transactions)
 
     block_two = Block(
         index=1,
-        header=block_header,
+        header=Header(
+            timestamp=timestamp,
+            transaction_merkle_root=tx_merkle_root,
+            nonce=nonce,
+            previous_hash=previous_hash,
+            difficulty=4,
+            version=1,
+        ),
         transaction_count=len(open_transactions),
         transactions=open_transactions,
     )
 
-    assert Verification.valid_nonce(block_two.header)
+    assert Verification.valid_nonce(
+        block_two.header.nonce,
+        block_two.transactions,
+        block_two.header.previous_hash,
+        block_two.header.difficulty,
+        block_two.header.version,
+    )

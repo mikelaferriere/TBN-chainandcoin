@@ -3,7 +3,7 @@ import hashlib
 
 from typing import Callable, List
 
-from block import Block, Header
+from block import Block
 
 from transaction import Transaction
 from wallet import Wallet
@@ -29,23 +29,35 @@ class Verification:
         return Verification.hash_bytes_256(hashable_block)
 
     @staticmethod
-    def valid_nonce(header: Header) -> bool:
+    def valid_nonce(
+        nonce: int,
+        transactions: List[Transaction],
+        previous_hash: str,
+        difficulty: int,
+        version: int,
+    ) -> bool:
         """
         Validates the Nonce: Does the hash(nonce, block) contain <difficulty> leading zeros?
-        :param header: <Header> Block header
+        :param nonce: <int> Current Nonce
+        :param transactions: List<Transaction> List of transactions in the block
+        :param previous_hash: <str> hash of the previous block
+        :param difficulty: <int> Difficulty of the proof of work
+        :param version: <str> version on the current block
         :return: <bool> True if correct, False if not
         """
         guess = (
-            str(header.transaction_merkle_root)
-            + str(header.previous_hash)
-            + str(header.nonce)
-            + str(header.version)
+            str(transactions) + str(previous_hash) + str(nonce) + str(version)
         ).encode()
         guess_hash = Verification.hash_bytes_256(guess)
-        return guess_hash[: header.difficulty] == "0" * header.difficulty
+        return guess_hash[:difficulty] == "0" * difficulty
 
     @staticmethod
-    def proof_of_work(header: Header) -> Header:
+    def proof_of_work(
+        last_block: Block,
+        open_transactions: List[Transaction],
+        difficulty: int,
+        version: int,
+    ) -> int:
         """
         Simple Proof of Work Algorithm
           - Find a number 'p' such that hash(pp') contains leading {difficulty} zeros,
@@ -65,10 +77,15 @@ class Verification:
         :param difficulty: <int>
         :return: <int>
         """
-        while not Verification.valid_nonce(header):
-            header.nonce += 1
+        previous_hash = Verification.hash_block(last_block)
 
-        return header
+        nonce = 0
+        while not Verification.valid_nonce(
+            nonce, open_transactions, previous_hash, difficulty, version
+        ):
+            nonce += 1
+
+        return nonce
 
     @classmethod
     def verify_chain(cls, blockchain: List[Block]) -> bool:
@@ -91,12 +108,23 @@ class Verification:
                     "Previous block hashed not equal to previous hash stored in current block"
                 )
                 return False
+            # We know that a correct block always includes the mining transaction
+            # as the last transaction in the block. We also did not create the inital nonce
+            # including the mining transaction, so we need to exclude it in order to get a
+            # valid nonce
+            block_transactions_sans_mining = block.transactions[:-1]
 
             logger.debug(
                 "Checking the Block hash for index %s is correct with the nonce attached",
                 index,
             )
-            if not cls.valid_nonce(block.header):
+            if not cls.valid_nonce(
+                block.header.nonce,
+                block_transactions_sans_mining,
+                block.header.previous_hash,
+                block.header.difficulty,
+                block.header.version,
+            ):
                 logger.error("Proof of work is invalid")
                 return False
         logger.info("Chain is valid")
