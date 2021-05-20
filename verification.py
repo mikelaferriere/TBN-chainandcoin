@@ -20,13 +20,13 @@ class Verification:
         return hashlib.sha256(b).hexdigest()
 
     @staticmethod
-    def hash_block(block: Block) -> str:
+    def hash_block_header(block: Block) -> str:
         """
         First, convert the block to an OrderedDict dictionary
         Then hash the block using SHA256
         """
-        hashable_block = block.SerializeToString()
-        return Verification.hash_bytes_256(hashable_block)
+        hashable_block_header = block.header.SerializeToString()
+        return Verification.hash_bytes_256(hashable_block_header)
 
     @staticmethod
     def valid_nonce(header: Header) -> bool:
@@ -86,7 +86,9 @@ class Verification:
                 index,
                 index - 1,
             )
-            if block.header.previous_hash != cls.hash_block(blockchain[index - 1]):
+            if block.header.previous_hash != cls.hash_block_header(
+                blockchain[index - 1]
+            ):
                 logger.error(
                     "Previous block hashed not equal to previous hash stored in current block"
                 )

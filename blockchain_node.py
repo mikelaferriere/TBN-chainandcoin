@@ -5,7 +5,6 @@ import logging
 import getpass
 import os
 
-from time import time
 from uuid import uuid4
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -49,7 +48,7 @@ def create_app(
             )
         address = w.address
 
-    timestamp = time() if not test else 0
+    timestamp = None if not test else 0
     blockchain = Blockchain(address, node_id, timestamp=timestamp)
 
     if not blockchain:

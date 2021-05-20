@@ -39,7 +39,7 @@ def test_block_hash_happy_path():
     )
 
     # Just asserting that an error is not thrown when hashing the block
-    Verification.hash_block(block)
+    Verification.hash_block_header(block)
 
 
 def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
@@ -80,7 +80,7 @@ def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
         transactions=transactions,
     )
 
-    first_hash = Verification.hash_block(block)
+    first_hash = Verification.hash_block_header(block)
 
     block = Block(
         index=0,
@@ -96,7 +96,7 @@ def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
         transactions=transactions,
     )
 
-    second_hash = Verification.hash_block(block)
+    second_hash = Verification.hash_block_header(block)
 
     assert first_hash == second_hash
 
@@ -118,7 +118,7 @@ def test_correct_nonce():
         transactions=[],
     )
 
-    previous_hash = Verification.hash_block(block_one)
+    previous_hash = Verification.hash_block_header(block_one)
 
     open_transactions = [
         Transaction(

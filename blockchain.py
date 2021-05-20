@@ -3,7 +3,7 @@ The blockchain (Really need to add a better description of what this is)
 """
 from functools import reduce
 
-from time import time
+from datetime import datetime
 
 from urllib.parse import urlparse
 from uuid import UUID
@@ -45,7 +45,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         *,
         difficulty: int = 4,
         version: int = 1,
-        timestamp: float = time(),
+        timestamp: Optional[datetime] = None,
     ) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
@@ -60,7 +60,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         genesis_block = Block(
             index=0,
             header=Header(
-                timestamp=timestamp,
+                timestamp=timestamp if timestamp is not None else datetime.utcnow(),
                 transaction_merkle_root=Transaction.get_merkle_root(transactions),
                 nonce=100,
                 previous_hash="",
@@ -309,15 +309,17 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         difficulty = difficulty if difficulty is not None else self.difficulty
         version = version if version is not None else self.version
         last_block = self.last_block
+        transaction_merkle_root = Transaction.get_merkle_root(
+            self.get_open_transactions
+        )
+        previous_hash = Verification.hash_block_header(last_block)
 
         block_header = Header(
             version=version,
             difficulty=difficulty,
-            timestamp=time(),
-            transaction_merkle_root=Transaction.get_merkle_root(
-                self.get_open_transactions
-            ),
-            previous_hash=Verification.hash_block(last_block),
+            timestamp=datetime.utcnow(),
+            transaction_merkle_root=transaction_merkle_root,
+            previous_hash=previous_hash,
             nonce=0,
         )
 
@@ -366,7 +368,10 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         """
         if not Verification.valid_nonce(block.header):
             return False, "Nonce is not valid"
-        if not Verification.hash_block(self.last_block) == block.header.previous_hash:
+        if (
+            not Verification.hash_block_header(self.last_block)
+            == block.header.previous_hash
+        ):
             return (
                 False,
                 "Hash of last block does not equal previous hash in the current block",
