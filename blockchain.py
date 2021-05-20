@@ -14,6 +14,7 @@ import logging
 import requests
 
 from block import Block
+from block import Header
 from transaction import Transaction
 from verification import Verification
 from wallet import Wallet
@@ -39,7 +40,13 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
     """
 
     def __init__(
-        self, address: str, node_id: UUID, difficulty: int = 4, version: str = "0.1"
+        self,
+        address: str,
+        node_id: UUID,
+        *,
+        difficulty: int = 4,
+        version: int = 1,
+        timestamp: float = time(),
     ) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
@@ -50,15 +57,19 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.version = version
 
         # Create the 'genesis' block. This is the inital block.
+        transactions = []  # type: List[Transaction]
         genesis_block = Block(
             index=0,
-            timestamp=time(),  # type: ignore
-            transaction_count=0,
-            transactions=[],
-            nonce=100,
-            previous_hash="",
-            difficulty=difficulty,
-            version=version,
+            header=Header(
+                timestamp=timestamp,
+                transaction_merkle_root=Transaction.get_merkle_root(transactions),
+                nonce=100,
+                previous_hash="",
+                difficulty=difficulty,
+                version=version,
+            ),
+            transaction_count=len(transactions),
+            transactions=transactions,
         )
 
         self.chain = [genesis_block]
@@ -270,7 +281,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self,
         address: Optional[str] = None,
         difficulty: Optional[int] = None,
-        version: Optional[str] = None,
+        version: Optional[int] = None,
     ) -> Optional[Block]:
         """
         The current node runs the mining protocol, and depending on the difficulty, this
@@ -304,6 +315,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Hash the last Block so we can compare it to the stored value
         previous_hash = Verification.hash_block(last_block)
 
+        tx_merkle_root = Transaction.get_merkle_root(self.get_open_transactions)
+
         # We run the PoW algorithm to get the next nonce
         nonce = Verification.proof_of_work(
             last_block, self.get_open_transactions, difficulty, version
@@ -326,13 +339,16 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         copied_open_transactions.append(reward_transaction)
         block = Block(
             index=self.next_index,
-            timestamp=time(),
+            header=Header(
+                timestamp=time(),
+                nonce=nonce,
+                previous_hash=previous_hash,
+                difficulty=difficulty,
+                version=self.version,
+                transaction_merkle_root=tx_merkle_root,
+            ),
             transaction_count=len(copied_open_transactions),
             transactions=copied_open_transactions,
-            nonce=nonce,
-            previous_hash=previous_hash,
-            difficulty=difficulty,
-            version=self.version,
         )
 
         # Add the block to the node's chain
@@ -354,14 +370,14 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         that match a transaction in the broadcasted block.
         """
         if not Verification.valid_nonce(
-            block.nonce,
+            block.header.nonce,
             block.transactions[:-1],
-            block.previous_hash,
-            block.difficulty,
-            block.version,
+            block.header.previous_hash,
+            block.header.difficulty,
+            block.header.version,
         ):
             return False, "Nonce is not valid"
-        if not Verification.hash_block(self.last_block) == block.previous_hash:
+        if not Verification.hash_block(self.last_block) == block.header.previous_hash:
             return (
                 False,
                 "Hash of last block does not equal previous hash in the current block",

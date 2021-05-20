@@ -4,20 +4,21 @@ import hashlib
 from typing import Callable, List
 
 from block import Block
+
 from transaction import Transaction
 from wallet import Wallet
 
 logger = logging.getLogger(__name__)
 
 
-def hash_bytes_256(b: bytes) -> str:
-    """
-    Hash a byte array and convert it to a string
-    """
-    return hashlib.sha256(b).hexdigest()
-
-
 class Verification:
+    @staticmethod
+    def hash_bytes_256(b: bytes) -> str:
+        """
+        Hash a byte array and convert it to a string
+        """
+        return hashlib.sha256(b).hexdigest()
+
     @staticmethod
     def hash_block(block: Block) -> str:
         """
@@ -25,7 +26,7 @@ class Verification:
         Then hash the block using SHA256
         """
         hashable_block = block.SerializeToString()
-        return hash_bytes_256(hashable_block)
+        return Verification.hash_bytes_256(hashable_block)
 
     @staticmethod
     def valid_nonce(
@@ -33,7 +34,7 @@ class Verification:
         transactions: List[Transaction],
         previous_hash: str,
         difficulty: int,
-        version: str,
+        version: int,
     ) -> bool:
         """
         Validates the Nonce: Does the hash(nonce, block) contain <difficulty> leading zeros?
@@ -47,7 +48,7 @@ class Verification:
         guess = (
             str(transactions) + str(previous_hash) + str(nonce) + str(version)
         ).encode()
-        guess_hash = hash_bytes_256(guess)
+        guess_hash = Verification.hash_bytes_256(guess)
         return guess_hash[:difficulty] == "0" * difficulty
 
     @staticmethod
@@ -55,7 +56,7 @@ class Verification:
         last_block: Block,
         open_transactions: List[Transaction],
         difficulty: int,
-        version: str,
+        version: int,
     ) -> int:
         """
         Simple Proof of Work Algorithm
@@ -102,7 +103,7 @@ class Verification:
                 index,
                 index - 1,
             )
-            if block.previous_hash != cls.hash_block(blockchain[index - 1]):
+            if block.header.previous_hash != cls.hash_block(blockchain[index - 1]):
                 logger.error(
                     "Previous block hashed not equal to previous hash stored in current block"
                 )
@@ -118,11 +119,11 @@ class Verification:
                 index,
             )
             if not cls.valid_nonce(
-                block.nonce,
+                block.header.nonce,
                 block_transactions_sans_mining,
-                block.previous_hash,
-                block.difficulty,
-                block.version,
+                block.header.previous_hash,
+                block.header.difficulty,
+                block.header.version,
             ):
                 logger.error("Proof of work is invalid")
                 return False

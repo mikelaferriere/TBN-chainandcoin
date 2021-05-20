@@ -1,6 +1,7 @@
 ecdsa
 flask==1.1.1
 flask-cors
+merkletools
 PyCryptodome
 pydantic
 PyQt5
