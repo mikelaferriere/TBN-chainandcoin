@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Optional
 from pathlib import Path
 from pydantic import BaseModel
 
@@ -166,7 +166,7 @@ class FinalTransaction(BaseModel):
         tx_files = storage.list_files(Path("transactions"))
         txs = []
         for f in tx_files:
-            tx = storage.read_string(Path(f"transactions/{f}"))
+            tx = storage.read_string(Path("transactions") / f)
             if not tx:
                 raise ValueError(
                     "Found a file in transaction folder that was not a transaction"
@@ -180,6 +180,20 @@ class FinalTransaction(BaseModel):
                 )
             )
         return txs
+
+    @staticmethod
+    def FindTransaction(
+        data_location: str, transaction_hash: str
+    ) -> Optional[FinalTransaction]:
+        storage = Storage(Path(data_location))
+        tx = storage.read_string(Path("transactions") / transaction_hash)
+        if tx is None:
+            return None
+        return FinalTransaction(
+            transaction_hash=transaction_hash,
+            transaction_id=transaction_hash,
+            signed_transaction=SignedRawTransaction.ParseFromHex(tx),
+        )
 
     @staticmethod
     def SaveTransaction(data_location: str, transaction: FinalTransaction) -> None:
