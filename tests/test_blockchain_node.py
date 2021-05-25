@@ -141,6 +141,7 @@ class TestNodeTransaction(TestBase):
             {
                 "message": "Successfully added transaction.",
                 "transaction": TRANSACTION_HASH,
+                "block": 2,
             },
         )
 

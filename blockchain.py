@@ -10,6 +10,8 @@ from uuid import UUID
 
 from typing import List, Optional, Set, Tuple
 
+import tempfile
+import shutil
 import logging
 import requests
 
@@ -55,9 +57,14 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.difficulty = difficulty
         self.address = address
         self.version = version
-        self.is_test = is_test
+        self.data_location = "data" if not is_test else f"{tempfile.tempdir}/blockchain"
+        if is_test:
+            try:
+                shutil.rmtree(self.data_location)
+            except Exception:
+                pass
 
-        saved_blocks = Block.LoadBlocks() if not self.is_test else []
+        saved_blocks = Block.LoadBlocks(self.data_location)
 
         if not saved_blocks:
             # Create the 'genesis' block. This is the inital block.
@@ -114,13 +121,11 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         Adds the current block to the chain. By this time, it has been fully verified and
         the chain will be valid once it is added
         """
-        if not self.is_test:
-            Block.SaveBlock(block)
+        Block.SaveBlock(self.data_location, block)
         self.__chain.append(block)
 
     def add_open_transaction(self, transaction: FinalTransaction) -> None:
-        if not self.is_test:
-            FinalTransaction.SaveTransaction(transaction)
+        FinalTransaction.SaveTransaction(self.data_location, transaction)
         self.__open_transactions.append(transaction)
 
     @property
@@ -207,7 +212,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         else:
             participant = sender
 
-        all_transactions = FinalTransaction.LoadTransactions()
+        all_transactions = FinalTransaction.LoadTransactions(self.data_location)
         # Fetch a list of all sent coin amounts for the given person
         # (empty lists are returned if the person was NOT the sender)
 
@@ -386,9 +391,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             if not Wallet.verify_transaction(tx.signed_transaction):
                 return None
 
-        if not self.is_test:
-            FinalTransaction.SaveTransaction(reward_transaction)
-
+        FinalTransaction.SaveTransaction(self.data_location, reward_transaction)
         copied_open_transactions.append(reward_transaction)
 
         block = Block(
@@ -500,9 +503,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
             logger.info("Replacing our chain with neighbour's chain")
-            if not self.is_test:
-                for b in new_chain:
-                    Block.SaveBlock(b)
+            for b in new_chain:
+                Block.SaveBlock(self.data_location, b)
             self.chain = new_chain
             return True
 

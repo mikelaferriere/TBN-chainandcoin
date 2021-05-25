@@ -159,8 +159,8 @@ class Block(BaseModel):
         return Block.ParseFromString(bytes.fromhex(block_hex))
 
     @staticmethod
-    def LoadBlocks() -> List[Block]:
-        block_storage = Storage(Path("data"))
+    def LoadBlocks(data_location: str) -> List[Block]:
+        block_storage = Storage(Path(data_location))
         block_files = block_storage.list_files(Path("blocks"))
         blocks = []
         for f in block_files:
@@ -172,6 +172,6 @@ class Block(BaseModel):
         return blocks
 
     @staticmethod
-    def SaveBlock(block: Block) -> None:
-        block_storage = Storage(Path("data/blocks"))
+    def SaveBlock(data_location: str, block: Block) -> None:
+        block_storage = Storage(Path(data_location) / "blocks")
         block_storage.save(Path(block.block_hash), block.SerializeToHex())

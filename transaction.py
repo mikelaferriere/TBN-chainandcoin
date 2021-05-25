@@ -161,8 +161,8 @@ class FinalTransaction(BaseModel):
     signed_transaction: SignedRawTransaction
 
     @staticmethod
-    def LoadTransactions() -> List[FinalTransaction]:
-        storage = Storage(Path("data"))
+    def LoadTransactions(data_location: str) -> List[FinalTransaction]:
+        storage = Storage(Path(data_location))
         tx_files = storage.list_files(Path("transactions"))
         txs = []
         for f in tx_files:
@@ -182,8 +182,8 @@ class FinalTransaction(BaseModel):
         return txs
 
     @staticmethod
-    def SaveTransaction(transaction: FinalTransaction) -> None:
-        storage = Storage(Path("data/transactions"))
+    def SaveTransaction(data_location: str, transaction: FinalTransaction) -> None:
+        storage = Storage(Path(data_location) / "transactions")
         storage.save(
             Path(transaction.transaction_hash),
             transaction.signed_transaction.SerializeToHex(),
