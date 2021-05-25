@@ -6,10 +6,9 @@ NOTE 2: This library does not protect against side-channel attacks
 """
 import logging
 import hashlib
-import json
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from Crypto.Hash import keccak
 from Crypto.Cipher import AES
@@ -19,7 +18,8 @@ from Crypto.Random import get_random_bytes
 
 import ecdsa
 
-from transaction import Transaction
+from storage import Storage
+from transaction import Details, SignedRawTransaction
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,8 @@ class Wallet:
         self.address = None  # type: Optional[str]
         self.nonce = 0
         self.logged_in = False
+
+        self.storage = Storage(Path("wallet"))
 
         if test:
             self.create_login("test", save=False)
@@ -82,18 +84,16 @@ class Wallet:
             }
 
             if save:
-                path = Path("wallet")
-                path.mkdir(exist_ok=True)
-                with open(path / ".keys", mode="w") as f:
-                    json.dump(output, f)
-        except (IOError, IndexError):
-            logger.error("Creating login for wallet failed...")
+                if self.storage.save(Path(".keys"), output):
+                    logger.debug("Keys saved successfully")
+                else:
+                    logger.warning("Failed to save keys")
         except ValueError as e:
             logger.exception(e)
 
         address = self.generate_address()
         if save:
-            Wallet.save_address(address)
+            self.save_address(address)
         self.set_is_logged_in()
         return self.logged_in
 
@@ -111,51 +111,42 @@ class Wallet:
             return True
 
         try:
-            path = Path("wallet")
-            path.mkdir(exist_ok=True)
-            with open(path / ".keys", mode="r") as f:
-                data = json.load(f)
-                salt = data["salt"]
-                iv = data["initialization_vector"]
-                ct = data["encrypted_private_key"]
+            data = self.storage.read_json(Path(".keys"))
+            if not data:
+                raise FileNotFoundError("Tried to login, but no key was found")
+            salt = data["salt"]
+            iv = data["initialization_vector"]
+            ct = data["encrypted_private_key"]
 
-                salt = bytes.fromhex(salt)
-                iv = bytes.fromhex(iv)
-                ct = bytes.fromhex(ct)
+            salt = bytes.fromhex(salt)
+            iv = bytes.fromhex(iv)
+            ct = bytes.fromhex(ct)
 
-                key = scrypt(passphrase, salt, 32, N=2 ** 20, r=8, p=1)  # type: ignore
+            key = scrypt(passphrase, salt, 32, N=2 ** 20, r=8, p=1)  # type: ignore
 
-                cipher = AES.new(key, AES.MODE_CBC, iv)  # type: ignore
-                pt = bytes.fromhex(  # type: ignore
-                    unpad(cipher.decrypt(ct), AES.block_size).decode("utf-8")
-                )
+            cipher = AES.new(key, AES.MODE_CBC, iv)  # type: ignore
+            pt = bytes.fromhex(  # type: ignore
+                unpad(cipher.decrypt(ct), AES.block_size).decode("utf-8")
+            )
 
-                self.private_key = ecdsa.SigningKey.from_string(
-                    pt,
-                    curve=ecdsa.SECP256k1,
-                    hashfunc=hashlib.sha256,  # the default is sha1
-                )
+            self.private_key = ecdsa.SigningKey.from_string(
+                pt,
+                curve=ecdsa.SECP256k1,
+                hashfunc=hashlib.sha256,  # the default is sha1
+            )
 
             if not self.private_key:
                 raise FileNotFoundError("Tried to login, but no key was found")
             vk = self.private_key.verifying_key
             public_key = vk.to_string()
             self.public_key = public_key
-        except FileNotFoundError as e:
-            logger.error(e)
-            self.public_key = None
-            self.private_key = None
-        except (IOError, IndexError):
-            logger.error("Retrieving keys from wallet failed...")
-            self.public_key = None
-            self.private_key = None
         except ValueError:
             logger.warning("Invalid Password. Try Again")
             self.public_key = None
             self.private_key = None
 
         self.set_is_logged_in()
-        self.address = Wallet.load_address()
+        self.address = self.load_address()
         return self.logged_in
 
     def __generate_keys(self) -> None:
@@ -186,42 +177,33 @@ class Wallet:
         self.address = address
         return address
 
-    @staticmethod
-    def load_address() -> Optional[str]:
+    def load_address(self) -> Optional[str]:
         """
         Retreive the address from the local saved location
         """
-        path = Path("wallet")
-        path.mkdir(exist_ok=True)
-        path = path / ".address"
-        logger.debug("Retreiving address from %s", path)
+        logger.debug("Retreiving address from %s", Path(".address").absolute())
 
         try:
-            with open(path, mode="r") as f:
-                address = f.read()
-                logger.debug("Address retreived")
-                return address
-        except (IOError, IndexError):
+            address = self.storage.read_json(Path(".address"))
+            if not address:
+                raise ValueError("Failed to retrieve address")
+            logger.debug("Address retreived")
+            return address["address"]
+        except (IOError, IndexError, ValueError):
             logger.error("Retreiving address failed...")
         return None
 
-    @staticmethod
-    def save_address(address: str) -> None:
+    def save_address(self, address: str) -> None:
         """
         Save a given address to the local saved location
         """
-        path = Path("wallet")
-        path.mkdir(exist_ok=True)
-        path = path / ".address"
-        logger.debug("Saving address to %s", path)
-        try:
-            with open(path, mode="w") as f:
-                f.write(address)
+        logger.debug("Saving address to %s", Path(".address").absolute())
+        if self.storage.save(Path(".address"), {"address": address}):
             logger.debug("Address saved")
-        except (IOError, IndexError):
+        else:
             logger.error("Saving address failed...")
 
-    def sign_transaction(self, transaction: Any) -> str:
+    def sign_transaction(self, details: Details) -> SignedRawTransaction:
         """
         Sign a transaction and return the signature
         A signature is generated using the contents of the rest of the transaction. This means
@@ -233,14 +215,15 @@ class Wallet:
             logger.error(message)
             raise ValueError(message)
 
-        tx = transaction.SerializeToString()
-        signature = self.private_key.sign(tx)
+        d = details.SerializeToString()
+        signature = self.private_key.sign(d)
 
         logger.debug("Transaction signed successfully")
-        return signature.hex()
+
+        return SignedRawTransaction(details=details, signature=signature.hex())
 
     @staticmethod
-    def verify_transaction(tx: Any) -> bool:
+    def verify_transaction(tx: SignedRawTransaction) -> bool:
         """
         Verify signature of transaction. A transaction's signature must always be able to be
         verified because the contents of the transaction can never change. Any change in the
@@ -248,18 +231,12 @@ class Wallet:
         """
         logger.info("Verifying transaction")
         try:
-            message = Transaction(
-                sender=tx.sender,
-                recipient=tx.recipient,
-                nonce=tx.nonce,
-                amount=tx.amount,
-                public_key=tx.public_key,
-            ).SerializeToString()
+            message = tx.details.SerializeToString()
 
             signature = bytes.fromhex(tx.signature)
 
             vk = ecdsa.VerifyingKey.from_string(
-                bytes.fromhex(tx.public_key),
+                bytes.fromhex(tx.details.public_key),
                 curve=ecdsa.SECP256k1,
                 hashfunc=hashlib.sha256,  # the default is sha1
             )

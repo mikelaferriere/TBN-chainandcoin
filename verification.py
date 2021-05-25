@@ -5,7 +5,7 @@ from typing import Callable, List
 
 from block import Block, Header
 
-from transaction import Transaction
+from transaction import FinalTransaction, SignedRawTransaction
 from wallet import Wallet
 
 logger = logging.getLogger(__name__)
@@ -20,13 +20,22 @@ class Verification:
         return hashlib.sha256(b).hexdigest()
 
     @staticmethod
-    def hash_block_header(block: Block) -> str:
+    def hash_block_header(header: Header) -> str:
         """
-        First, convert the block to an OrderedDict dictionary
+        First, convert the block header to an byte array
         Then hash the block using SHA256
         """
-        hashable_block_header = block.header.SerializeToString()
+        hashable_block_header = header.SerializeToString()
         return Verification.hash_bytes_256(hashable_block_header)
+
+    @staticmethod
+    def hash_transaction(transaction: SignedRawTransaction) -> str:
+        """
+        First, convert the transaction to byte array
+        Then hash the transaction using SHA256
+        """
+        hashable_transaction = transaction.SerializeToString()
+        return Verification.hash_bytes_256(hashable_transaction)
 
     @staticmethod
     def valid_nonce(header: Header) -> bool:
@@ -82,12 +91,13 @@ class Verification:
             if index == 0:
                 continue
             logger.debug(
-                "Checking index %s's previous hash with the block hash of index %s",
+                "Checking index %s previous hash with the block hash of index %s",
                 index,
                 index - 1,
             )
+
             if block.header.previous_hash != cls.hash_block_header(
-                blockchain[index - 1]
+                blockchain[index - 1].header
             ):
                 logger.error(
                     "Previous block hashed not equal to previous hash stored in current block"
@@ -106,7 +116,9 @@ class Verification:
 
     @staticmethod
     def verify_transaction(
-        transaction: Transaction, get_balance: Callable, check_funds: bool = True
+        transaction: SignedRawTransaction,
+        get_balance: Callable,
+        check_funds: bool = True,
     ) -> bool:
         """
         Verifies the transaction.
@@ -122,20 +134,22 @@ class Verification:
             logger.debug(
                 "Checking the sender's balance can cover the amount being transferred"
             )
-            sender_balance = get_balance(transaction.sender)
+            sender_balance = get_balance(transaction.details.sender)
             logger.info("Sender's balance: %s", sender_balance)
-            return sender_balance >= transaction.amount and Wallet.verify_transaction(
-                transaction
+            return (
+                sender_balance >= transaction.details.amount
+                and Wallet.verify_transaction(transaction)
             )
         return Wallet.verify_transaction(transaction)
 
     @classmethod
     def verify_transactions(
-        cls, open_transactions: List[Transaction], get_balance: Callable
+        cls, open_transactions: List[FinalTransaction], get_balance: Callable
     ):
         """
         Verifies all open & unprocessed transactions without checking sender's balance
         """
         return all(
-            cls.verify_transaction(tx, get_balance, False) for tx in open_transactions
+            cls.verify_transaction(tx.signed_transaction, get_balance, False)
+            for tx in open_transactions
         )

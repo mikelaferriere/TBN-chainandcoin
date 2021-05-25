@@ -1,15 +1,38 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from datetime import datetime
+from typing import Any, List
+from pathlib import Path
 from pydantic import BaseModel
 
 import merkletools
 
+from google.protobuf.timestamp_pb2 import Timestamp
+
 from generated import transaction_pb2
+from storage import Storage
 
 
-class Transaction(BaseModel):
+def convert_to_merkle(
+    transactions: List[SignedRawTransaction],
+) -> merkletools.MerkleTools:
+    mt = merkletools.MerkleTools(hash_type="sha256")
+
+    mt.add_leaf([t.SerializeToHex() for t in transactions])
+    mt.make_tree()
+
+    return mt
+
+
+def get_merkle_root(transactions: List[SignedRawTransaction]) -> str:
+    merkle = convert_to_merkle(transactions).get_merkle_root()
+    return merkle if merkle is not None else ""
+
+
+class Details(BaseModel):
     """
+    A raw version of a transaction that has not yet been signed or confirmed
+
     sender : <str> The sender of the transaction
     recipient : <str> The recipient of the transaction
     amount : <float> The amount of coin being transferred
@@ -18,41 +41,82 @@ class Transaction(BaseModel):
                   confirmed transaction for this sender. This is imperative to ensure that
                   confirmed transactions can't be replayed over and over again to drain the
                   sender's coin. This is a fix for 'double-spending'.
-    signature : optional <str> The signature of the transaction to prove that the sender 'signed'
-                               off on the transaction.
-    public_key : optional <str> The public key for the sender in order to verify that they were
-                                the ones to create this transaction.
+    public_key : <str> The public key for the sender in order to verify that they were
+                       the ones to create this transaction.
 
-                                TODO: This should be included in the hash in a different,
-                                      more secure way later.
+                       TODO: This should be included in the hash in a different,
+                             more secure way later.
     """
 
     sender: str
     recipient: str
     amount: float
     nonce: int
-    public_key: Optional[str]
-    signature: Optional[str]
+    timestamp: datetime
+    public_key: str
 
     def ToProtobuf(self) -> Any:
-        return transaction_pb2.Transaction(
+        timestamp = Timestamp()
+        timestamp.FromDatetime(self.timestamp)
+
+        return transaction_pb2.Details(
             sender=self.sender,
             recipient=self.recipient,
             amount=self.amount,
             nonce=self.nonce,
+            timestamp=timestamp,
             public_key=self.public_key,
+        )
+
+    @staticmethod
+    def FromProtobuf(d: Any) -> Details:
+        try:
+            # This format only exists in testing specifically.
+            timestamp = datetime.strptime(
+                d.timestamp.ToJsonString(), "%Y-%m-%dT%H:%M:%SZ"
+            )
+        except ValueError:
+            timestamp = datetime.strptime(
+                d.timestamp.ToJsonString(), "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+
+        return Details(
+            sender=d.sender,
+            recipient=d.recipient,
+            amount=d.amount,
+            nonce=d.nonce,
+            timestamp=timestamp,
+            public_key=d.public_key,
+        )
+
+    def SerializeToString(self) -> bytes:
+        d = self.ToProtobuf()
+        return d.SerializeToString()
+
+
+class SignedRawTransaction(BaseModel):
+    """
+    A raw version of a signed transaction, ready to be hashed and validated into a block
+
+    details: <Details> The unsigned version of the transaction
+    signature : <str> The signature of the unsigned_transaction to prove that the sender 'signed'
+                      off on the transaction.
+    """
+
+    details: Details
+    signature: str
+
+    def ToProtobuf(self) -> Any:
+        return transaction_pb2.SignedRawTransaction(
+            details=self.details.ToProtobuf(),
             signature=self.signature,
         )
 
     @staticmethod
-    def FromProtobuf(transaction: Any) -> Transaction:
-        return Transaction(
-            sender=transaction.sender,
-            recipient=transaction.recipient,
-            amount=transaction.amount,
-            nonce=transaction.nonce,
-            public_key=transaction.public_key if transaction.public_key else None,
-            signature=transaction.signature if transaction.signature else None,
+    def FromProtobuf(transaction: Any) -> SignedRawTransaction:
+        return SignedRawTransaction(
+            details=transaction.details,
+            signature=transaction.signature,
         )
 
     def SerializeToString(self) -> bytes:
@@ -63,33 +127,64 @@ class Transaction(BaseModel):
         return self.SerializeToString().hex()
 
     @staticmethod
-    def ParseFromString(transaction_bytes: bytes) -> Transaction:
-        t = transaction_pb2.Transaction()
+    def ParseFromString(transaction_bytes: bytes) -> SignedRawTransaction:
+        t = transaction_pb2.SignedRawTransaction()
         t.ParseFromString(transaction_bytes)
 
-        return Transaction(
-            sender=t.sender,
-            recipient=t.recipient,
-            amount=t.amount,
-            nonce=t.nonce,
-            public_key=t.public_key if t.public_key else None,
-            signature=t.signature if t.signature else None,
+        details = Details.FromProtobuf(t.details)
+        return SignedRawTransaction(
+            details=details,
+            signature=t.signature,
         )
 
     @staticmethod
-    def ParseFromHex(transaction_hex: str) -> Transaction:
-        return Transaction.ParseFromString(bytes.fromhex(transaction_hex))
+    def ParseFromHex(transaction_hex: str) -> SignedRawTransaction:
+        return SignedRawTransaction.ParseFromString(bytes.fromhex(transaction_hex))
+
+
+class FinalTransaction(BaseModel):
+    """
+    A final version of a SignedRawTransaction, with transaction hash and id, ready to be
+    validated into a block. This is the version that can be saved (in hex value) to the
+    node's storage for lookup later.
+
+    The transaction hash will be added to the list of transactions in the block.
+
+    transaction_hash : <str> sha256 hash of the SignedRawTransaction
+    transaction_id : <str> id of the transaction (will match transaction_hash until more
+                           transaction types are added to the blockchain)
+    signed_transaction : <SignedRawTransaction> the details of the transaction
+    """
+
+    transaction_hash: str
+    transaction_id: str
+    signed_transaction: SignedRawTransaction
 
     @staticmethod
-    def convert_to_merkle(transactions: List[Transaction]) -> merkletools.MerkleTools:
-        mt = merkletools.MerkleTools(hash_type="sha256")
+    def LoadTransactions(data_location: str) -> List[FinalTransaction]:
+        storage = Storage(Path(data_location))
+        tx_files = storage.list_files(Path("transactions"))
+        txs = []
+        for f in tx_files:
+            tx = storage.read_string(Path(f"transactions/{f}"))
+            if not tx:
+                raise ValueError(
+                    "Found a file in transaction folder that was not a transaction"
+                )
 
-        mt.add_leaf([t.SerializeToHex() for t in transactions])
-        mt.make_tree()
-
-        return mt
+            txs.append(
+                FinalTransaction(
+                    transaction_hash=f,
+                    transaction_id=f,
+                    signed_transaction=SignedRawTransaction.ParseFromHex(tx),
+                )
+            )
+        return txs
 
     @staticmethod
-    def get_merkle_root(transactions: List[Transaction]) -> str:
-        merkle = Transaction.convert_to_merkle(transactions).get_merkle_root()
-        return merkle if merkle is not None else ""
+    def SaveTransaction(data_location: str, transaction: FinalTransaction) -> None:
+        storage = Storage(Path(data_location) / "transactions")
+        storage.save(
+            Path(transaction.transaction_hash),
+            transaction.signed_transaction.SerializeToHex(),
+        )

@@ -11,6 +11,7 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -19,57 +20,58 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\"\xdf\x01\n\x0bTransaction\x12\x13\n\x06sender\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x16\n\trecipient\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x06\x61mount\x18\x03 \x01(\x01H\x02\x88\x01\x01\x12\x16\n\tsignature\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x12\n\x05nonce\x18\x05 \x01(\x05H\x04\x88\x01\x01\x12\x17\n\npublic_key\x18\x06 \x01(\tH\x05\x88\x01\x01\x42\t\n\x07_senderB\x0c\n\n_recipientB\t\n\x07_amountB\x0c\n\n_signatureB\x08\n\x06_nonceB\r\n\x0b_public_keyb\x06proto3'
-)
+  serialized_pb=b'\n\x1bgenerated/transaction.proto\x12\x0btransaction\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf7\x01\n\x07\x44\x65tails\x12\x13\n\x06sender\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x16\n\trecipient\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x13\n\x06\x61mount\x18\x03 \x01(\x01H\x02\x88\x01\x01\x12\x12\n\x05nonce\x18\x04 \x01(\x05H\x03\x88\x01\x01\x12\x32\n\ttimestamp\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x04\x88\x01\x01\x12\x17\n\npublic_key\x18\x06 \x01(\tH\x05\x88\x01\x01\x42\t\n\x07_senderB\x0c\n\n_recipientB\t\n\x07_amountB\x08\n\x06_nonceB\x0c\n\n_timestampB\r\n\x0b_public_key\"t\n\x14SignedRawTransaction\x12*\n\x07\x64\x65tails\x18\x01 \x01(\x0b\x32\x14.transaction.DetailsH\x00\x88\x01\x01\x12\x16\n\tsignature\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\n\n\x08_detailsB\x0c\n\n_signatureb\x06proto3'
+  ,
+  dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
 
 
 
-_TRANSACTION = _descriptor.Descriptor(
-  name='Transaction',
-  full_name='transaction.Transaction',
+_DETAILS = _descriptor.Descriptor(
+  name='Details',
+  full_name='transaction.Details',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='sender', full_name='transaction.Transaction.sender', index=0,
+      name='sender', full_name='transaction.Details.sender', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='recipient', full_name='transaction.Transaction.recipient', index=1,
+      name='recipient', full_name='transaction.Details.recipient', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='amount', full_name='transaction.Transaction.amount', index=2,
+      name='amount', full_name='transaction.Details.amount', index=2,
       number=3, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='signature', full_name='transaction.Transaction.signature', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='nonce', full_name='transaction.Transaction.nonce', index=4,
-      number=5, type=5, cpp_type=1, label=1,
+      name='nonce', full_name='transaction.Details.nonce', index=3,
+      number=4, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='public_key', full_name='transaction.Transaction.public_key', index=5,
+      name='timestamp', full_name='transaction.Details.timestamp', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='public_key', full_name='transaction.Details.public_key', index=5,
       number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -87,67 +89,132 @@ _TRANSACTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
     _descriptor.OneofDescriptor(
-      name='_sender', full_name='transaction.Transaction._sender',
+      name='_sender', full_name='transaction.Details._sender',
       index=0, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_recipient', full_name='transaction.Transaction._recipient',
+      name='_recipient', full_name='transaction.Details._recipient',
       index=1, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_amount', full_name='transaction.Transaction._amount',
+      name='_amount', full_name='transaction.Details._amount',
       index=2, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_signature', full_name='transaction.Transaction._signature',
+      name='_nonce', full_name='transaction.Details._nonce',
       index=3, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_nonce', full_name='transaction.Transaction._nonce',
+      name='_timestamp', full_name='transaction.Details._timestamp',
       index=4, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_public_key', full_name='transaction.Transaction._public_key',
+      name='_public_key', full_name='transaction.Details._public_key',
       index=5, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=45,
-  serialized_end=268,
+  serialized_start=78,
+  serialized_end=325,
 )
 
-_TRANSACTION.oneofs_by_name['_sender'].fields.append(
-  _TRANSACTION.fields_by_name['sender'])
-_TRANSACTION.fields_by_name['sender'].containing_oneof = _TRANSACTION.oneofs_by_name['_sender']
-_TRANSACTION.oneofs_by_name['_recipient'].fields.append(
-  _TRANSACTION.fields_by_name['recipient'])
-_TRANSACTION.fields_by_name['recipient'].containing_oneof = _TRANSACTION.oneofs_by_name['_recipient']
-_TRANSACTION.oneofs_by_name['_amount'].fields.append(
-  _TRANSACTION.fields_by_name['amount'])
-_TRANSACTION.fields_by_name['amount'].containing_oneof = _TRANSACTION.oneofs_by_name['_amount']
-_TRANSACTION.oneofs_by_name['_signature'].fields.append(
-  _TRANSACTION.fields_by_name['signature'])
-_TRANSACTION.fields_by_name['signature'].containing_oneof = _TRANSACTION.oneofs_by_name['_signature']
-_TRANSACTION.oneofs_by_name['_nonce'].fields.append(
-  _TRANSACTION.fields_by_name['nonce'])
-_TRANSACTION.fields_by_name['nonce'].containing_oneof = _TRANSACTION.oneofs_by_name['_nonce']
-_TRANSACTION.oneofs_by_name['_public_key'].fields.append(
-  _TRANSACTION.fields_by_name['public_key'])
-_TRANSACTION.fields_by_name['public_key'].containing_oneof = _TRANSACTION.oneofs_by_name['_public_key']
-DESCRIPTOR.message_types_by_name['Transaction'] = _TRANSACTION
+
+_SIGNEDRAWTRANSACTION = _descriptor.Descriptor(
+  name='SignedRawTransaction',
+  full_name='transaction.SignedRawTransaction',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='details', full_name='transaction.SignedRawTransaction.details', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='signature', full_name='transaction.SignedRawTransaction.signature', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='_details', full_name='transaction.SignedRawTransaction._details',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_signature', full_name='transaction.SignedRawTransaction._signature',
+      index=1, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+  ],
+  serialized_start=327,
+  serialized_end=443,
+)
+
+_DETAILS.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_DETAILS.oneofs_by_name['_sender'].fields.append(
+  _DETAILS.fields_by_name['sender'])
+_DETAILS.fields_by_name['sender'].containing_oneof = _DETAILS.oneofs_by_name['_sender']
+_DETAILS.oneofs_by_name['_recipient'].fields.append(
+  _DETAILS.fields_by_name['recipient'])
+_DETAILS.fields_by_name['recipient'].containing_oneof = _DETAILS.oneofs_by_name['_recipient']
+_DETAILS.oneofs_by_name['_amount'].fields.append(
+  _DETAILS.fields_by_name['amount'])
+_DETAILS.fields_by_name['amount'].containing_oneof = _DETAILS.oneofs_by_name['_amount']
+_DETAILS.oneofs_by_name['_nonce'].fields.append(
+  _DETAILS.fields_by_name['nonce'])
+_DETAILS.fields_by_name['nonce'].containing_oneof = _DETAILS.oneofs_by_name['_nonce']
+_DETAILS.oneofs_by_name['_timestamp'].fields.append(
+  _DETAILS.fields_by_name['timestamp'])
+_DETAILS.fields_by_name['timestamp'].containing_oneof = _DETAILS.oneofs_by_name['_timestamp']
+_DETAILS.oneofs_by_name['_public_key'].fields.append(
+  _DETAILS.fields_by_name['public_key'])
+_DETAILS.fields_by_name['public_key'].containing_oneof = _DETAILS.oneofs_by_name['_public_key']
+_SIGNEDRAWTRANSACTION.fields_by_name['details'].message_type = _DETAILS
+_SIGNEDRAWTRANSACTION.oneofs_by_name['_details'].fields.append(
+  _SIGNEDRAWTRANSACTION.fields_by_name['details'])
+_SIGNEDRAWTRANSACTION.fields_by_name['details'].containing_oneof = _SIGNEDRAWTRANSACTION.oneofs_by_name['_details']
+_SIGNEDRAWTRANSACTION.oneofs_by_name['_signature'].fields.append(
+  _SIGNEDRAWTRANSACTION.fields_by_name['signature'])
+_SIGNEDRAWTRANSACTION.fields_by_name['signature'].containing_oneof = _SIGNEDRAWTRANSACTION.oneofs_by_name['_signature']
+DESCRIPTOR.message_types_by_name['Details'] = _DETAILS
+DESCRIPTOR.message_types_by_name['SignedRawTransaction'] = _SIGNEDRAWTRANSACTION
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Transaction = _reflection.GeneratedProtocolMessageType('Transaction', (_message.Message,), {
-  'DESCRIPTOR' : _TRANSACTION,
+Details = _reflection.GeneratedProtocolMessageType('Details', (_message.Message,), {
+  'DESCRIPTOR' : _DETAILS,
   '__module__' : 'generated.transaction_pb2'
-  # @@protoc_insertion_point(class_scope:transaction.Transaction)
+  # @@protoc_insertion_point(class_scope:transaction.Details)
   })
-_sym_db.RegisterMessage(Transaction)
+_sym_db.RegisterMessage(Details)
+
+SignedRawTransaction = _reflection.GeneratedProtocolMessageType('SignedRawTransaction', (_message.Message,), {
+  'DESCRIPTOR' : _SIGNEDRAWTRANSACTION,
+  '__module__' : 'generated.transaction_pb2'
+  # @@protoc_insertion_point(class_scope:transaction.SignedRawTransaction)
+  })
+_sym_db.RegisterMessage(SignedRawTransaction)
 
 
 # @@protoc_insertion_point(module_scope)

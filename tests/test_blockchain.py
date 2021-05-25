@@ -1,7 +1,8 @@
+from datetime import datetime
 from uuid import uuid4
 
 from blockchain import Blockchain
-from transaction import Transaction
+from transaction import Details
 from verification import Verification
 from wallet import Wallet
 
@@ -13,7 +14,7 @@ def test_blockchain_constructor():
 def test_mining_block():
     node_id = uuid4()
     w = Wallet(test=True)
-    chain = Blockchain(w.address, node_id)
+    chain = Blockchain(w.address, node_id, is_test=True)
     assert Verification.verify_chain(chain.chain)
     chain.mine_block()
     assert Verification.verify_chain(chain.chain)
@@ -22,29 +23,32 @@ def test_mining_block():
 
 
 def test_mining_block_with_open_transactions():
+    timestamp = datetime.utcfromtimestamp(0)
     node_id = uuid4()
     w1 = Wallet(test=True)
     w2 = Wallet(test=True)
 
-    chain = Blockchain(w1.address, node_id)
+    chain = Blockchain(w1.address, node_id, is_test=True)
 
-    transaction_1 = Transaction(
+    tx_details_1 = Details(
         sender=w1.address,
         recipient=w2.address,
         nonce=0,
         amount=0.5,
+        timestamp=timestamp,
         public_key=w1.public_key.hex(),
     )
-    transaction_1.signature = w1.sign_transaction(transaction_1)
+    transaction_1 = w1.sign_transaction(tx_details_1)
 
-    transaction_2 = Transaction(
+    tx_details_2 = Details(
         sender=w2.address,
         recipient=w1.address,
         nonce=0,
         amount=0.5,
+        timestamp=timestamp,
         public_key=w2.public_key.hex(),
     )
-    transaction_2.signature = w2.sign_transaction(transaction_2)
+    transaction_2 = w2.sign_transaction(tx_details_2)
 
     assert Verification.verify_chain(chain.chain)
     # Need to give the w1 at least 1.0 coin in their balance
@@ -57,35 +61,37 @@ def test_mining_block_with_open_transactions():
     for block in chain.chain:
         for tx in block.transactions:
             chain_transactions.append(tx)
-    assert transaction_1 in chain_transactions
+    assert Verification.hash_transaction(transaction_1) in chain_transactions
     chain.add_transaction(transaction_2, is_receiving=True)
     chain.mine_block()
     chain_transactions = []
     for block in chain.chain:
         for tx in block.transactions:
             chain_transactions.append(tx)
-    assert transaction_2 in chain_transactions
+    assert Verification.hash_transaction(transaction_2) in chain_transactions
 
 
 def test_broadcasting_block():
+    timestamp = datetime.utcfromtimestamp(0)
     node_id = uuid4()
     w1 = Wallet(test=True)
     w2 = Wallet(test=True)
 
-    chain1 = Blockchain(w1.address, node_id)
-    chain2 = Blockchain(w2.address, node_id)
+    chain1 = Blockchain(w1.address, node_id, is_test=True)
+    chain2 = Blockchain(w2.address, node_id, is_test=True)
 
     chain2.chain = chain1.chain
     assert chain1.chain == chain2.chain
 
-    transaction_1 = Transaction(
+    tx_details_1 = Details(
         sender=w1.address,
         recipient=w2.address,
         nonce=0,
         amount=0.5,
+        timestamp=timestamp,
         public_key=w1.public_key.hex(),
     )
-    transaction_1.signature = w1.sign_transaction(transaction_1)
+    transaction_1 = w1.sign_transaction(tx_details_1)
 
     assert Verification.verify_chain(chain1.chain)
     b = chain1.mine_block()
@@ -108,18 +114,20 @@ def test_broadcasting_block():
 
 
 def test_not_enough_coin():
+    timestamp = datetime.utcfromtimestamp(0)
     node_id = uuid4()
     w = Wallet(test=True)
     w2 = Wallet(test=True)
-    chain = Blockchain(w.address, node_id)
-    transaction = Transaction(
+    chain = Blockchain(w.address, node_id, is_test=True)
+    tx_details = Details(
         sender=w.address,
         recipient=w2.address,
         nonce=0,
-        amount=0.5,
+        amount=2995.0,
+        timestamp=timestamp,
         public_key=w.public_key.hex(),
     )
-    transaction.signature = w.sign_transaction(transaction)
+    transaction = w.sign_transaction(tx_details)
 
     assert Verification.verify_chain(chain.chain)
     try:

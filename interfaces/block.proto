@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
-import "generated/transaction.proto";
 
 package block;
 
@@ -20,5 +19,5 @@ message Block {
   optional string block_hash = 3;
   optional Header header = 4;
   optional int32 transaction_count = 5;
-  repeated transaction.Transaction transactions = 6;
+  repeated string transactions = 6;
 }

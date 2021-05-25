@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from block import Block, Header
-from transaction import Transaction
+from transaction import Details, SignedRawTransaction, get_merkle_root
 from verification import Verification
 
 
@@ -26,6 +26,8 @@ def test_block_hash_happy_path():
 
     block = Block(
         index=0,
+        block_hash="",
+        size=0,
         header=Header(
             timestamp=timestamp,
             transaction_merkle_root="",
@@ -39,35 +41,43 @@ def test_block_hash_happy_path():
     )
 
     # Just asserting that an error is not thrown when hashing the block
-    Verification.hash_block_header(block)
+    Verification.hash_block_header(block.header)
 
 
 def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
     timestamp = datetime.utcfromtimestamp(0)
 
     transactions = [
-        Transaction(
-            sender="test",
-            recipient="test2",
-            amount=5.0,
-            nonce=0,
-            signature=None,
-            public_key="pub_key",
+        SignedRawTransaction(
+            details=Details(
+                sender="test",
+                recipient="test2",
+                amount=5.0,
+                nonce=0,
+                timestamp=timestamp,
+                public_key="pub_key",
+            ),
+            signature="sig",
         ),
-        Transaction(
-            sender="test2",
-            recipient="test",
-            amount=2.5,
-            nonce=0,
-            signature=None,
-            public_key="pub_key",
+        SignedRawTransaction(
+            details=Details(
+                sender="test2",
+                recipient="test",
+                amount=2.5,
+                nonce=0,
+                timestamp=timestamp,
+                public_key="pub_key",
+            ),
+            signature="sig",
         ),
     ]
 
-    tx_merkle_root = Transaction.get_merkle_root(transactions)
+    tx_merkle_root = get_merkle_root(transactions)
 
     block = Block(
         index=0,
+        block_hash="",
+        size=0,
         header=Header(
             timestamp=timestamp,
             transaction_merkle_root=tx_merkle_root,
@@ -77,13 +87,15 @@ def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
             version=1,
         ),
         transaction_count=2,
-        transactions=transactions,
+        transactions=[Verification.hash_transaction(t) for t in transactions],
     )
 
-    first_hash = Verification.hash_block_header(block)
+    first_hash = Verification.hash_block_header(block.header)
 
     block = Block(
         index=0,
+        block_hash="",
+        size=0,
         header=Header(
             timestamp=timestamp,
             transaction_merkle_root=tx_merkle_root,
@@ -93,10 +105,10 @@ def test_block_hash_mutliple_transaction_field_order_doesnt_matter():
             version=1,
         ),
         transaction_count=2,
-        transactions=transactions,
+        transactions=[Verification.hash_transaction(t) for t in transactions],
     )
 
-    second_hash = Verification.hash_block_header(block)
+    second_hash = Verification.hash_block_header(block.header)
 
     assert first_hash == second_hash
 
@@ -106,6 +118,8 @@ def test_correct_nonce():
 
     block_one = Block(
         index=0,
+        block_hash="",
+        size=0,
         header=Header(
             timestamp=timestamp,
             transaction_merkle_root="",
@@ -118,16 +132,19 @@ def test_correct_nonce():
         transactions=[],
     )
 
-    previous_hash = Verification.hash_block_header(block_one)
+    previous_hash = Verification.hash_block_header(block_one.header)
 
     open_transactions = [
-        Transaction(
-            sender="test2",
-            recipient="test",
-            amount=2.5,
-            nonce=0,
-            signature=None,
-            public_key="pub_key",
+        SignedRawTransaction(
+            details=Details(
+                sender="test2",
+                recipient="test",
+                amount=2.5,
+                nonce=0,
+                timestamp=timestamp,
+                public_key="pub_key",
+            ),
+            signature="sig",
         )
     ]
 
@@ -135,7 +152,7 @@ def test_correct_nonce():
         version=1,
         difficulty=4,
         timestamp=datetime.utcfromtimestamp(1),
-        transaction_merkle_root=Transaction.get_merkle_root(open_transactions),
+        transaction_merkle_root=get_merkle_root(open_transactions),
         previous_hash=previous_hash,
         nonce=0,
     )
@@ -144,9 +161,11 @@ def test_correct_nonce():
 
     block_two = Block(
         index=1,
+        block_hash="",
+        size=0,
         header=block_header,
         transaction_count=len(open_transactions),
-        transactions=open_transactions,
+        transactions=[Verification.hash_transaction(t) for t in open_transactions],
     )
 
     assert Verification.valid_nonce(block_two.header)

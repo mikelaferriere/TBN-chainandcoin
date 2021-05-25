@@ -1,6 +1,6 @@
 __pycache__
 .mypy_cache
 *~
-wallet-*.txt
+data/
 wallet/
 debug.log

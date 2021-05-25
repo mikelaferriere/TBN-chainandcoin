@@ -10,11 +10,13 @@ from uuid import UUID
 
 from typing import List, Optional, Set, Tuple
 
+import tempfile
+import shutil
 import logging
 import requests
 
 from block import Block, Header
-from transaction import Transaction
+from transaction import Details, FinalTransaction, SignedRawTransaction, get_merkle_root
 from verification import Verification
 from wallet import Wallet
 
@@ -30,7 +32,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
           Unique Identifier for this particular node
       chain: <List[Block]>
           The list of blocks
-      __open_transactions (private): <List<Transaction]>
+      __open_transactions (private): <List[FinalTransaction]>
           The list of transactions that have not yet been committed in a block to the blockchain
       difficulty : <int> optional
           The difficulty for mining
@@ -42,6 +44,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self,
         address: str,
         node_id: UUID,
+        is_test: bool = False,
         *,
         difficulty: int = 4,
         version: int = 1,
@@ -49,29 +52,43 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
     ) -> None:
         # Generate a globally unique UUID for this node
         self.chain_identifier = node_id
-        self.__open_transactions = []  # type: List[Transaction]
+        self.__open_transactions = []  # type: List[FinalTransaction]
         self.nodes = set()  # type: Set[str]
         self.difficulty = difficulty
         self.address = address
         self.version = version
+        self.data_location = "data" if not is_test else f"{tempfile.tempdir}/blockchain"
+        if is_test:
+            try:
+                shutil.rmtree(self.data_location)
+            except Exception:
+                pass
 
-        # Create the 'genesis' block. This is the inital block.
-        transactions = []  # type: List[Transaction]
-        genesis_block = Block(
-            index=0,
-            header=Header(
+        saved_blocks = Block.LoadBlocks(self.data_location)
+
+        if not saved_blocks:
+            # Create the 'genesis' block. This is the inital block.
+            header = Header(
                 timestamp=timestamp if timestamp is not None else datetime.utcnow(),
-                transaction_merkle_root=Transaction.get_merkle_root(transactions),
+                transaction_merkle_root=get_merkle_root([]),
                 nonce=100,
                 previous_hash="",
                 difficulty=difficulty,
                 version=version,
-            ),
-            transaction_count=len(transactions),
-            transactions=transactions,
-        )
+            )
 
-        self.chain = [genesis_block]
+            saved_blocks.append(
+                Block(
+                    index=0,
+                    block_hash=Verification.hash_block_header(header),
+                    size=len(str(header)),
+                    header=header,
+                    transaction_count=0,
+                    transactions=[],
+                )
+            )
+
+        self.chain = saved_blocks
 
     @property
     def chain(self) -> List[Block]:
@@ -104,10 +121,15 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         Adds the current block to the chain. By this time, it has been fully verified and
         the chain will be valid once it is added
         """
+        Block.SaveBlock(self.data_location, block)
         self.__chain.append(block)
 
+    def add_open_transaction(self, transaction: FinalTransaction) -> None:
+        FinalTransaction.SaveTransaction(self.data_location, transaction)
+        self.__open_transactions.append(transaction)
+
     @property
-    def get_open_transactions(self) -> List[Transaction]:
+    def get_open_transactions(self) -> List[FinalTransaction]:
         """
         Return a copy of the list of transactions that have not yet been mined
         """
@@ -135,7 +157,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         return [c.SerializeToHex() for c in self.chain]
 
-    def __broadcast_transaction(self, transaction: Transaction) -> None:
+    def __broadcast_transaction(self, transaction: SignedRawTransaction) -> None:
         """
         Broadcast the current transaction to all nodes on the network that this node
         is aware of.
@@ -190,14 +212,18 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         else:
             participant = sender
 
+        all_transactions = FinalTransaction.LoadTransactions(self.data_location)
         # Fetch a list of all sent coin amounts for the given person
         # (empty lists are returned if the person was NOT the sender)
-        #
+
         # This fetches sent amounts of transactions that were already included in
         # blocks of the blockchain
         tx_sender = [
-            [tx.amount for tx in block.transactions if tx.sender == participant]
-            for block in self.chain
+            [
+                tx.signed_transaction.details.amount
+                for tx in all_transactions
+                if tx.signed_transaction.details.sender == participant
+            ]
         ]
 
         logger.debug("Sender's sent tx on the chain: %s", tx_sender)
@@ -207,7 +233,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         #
         # This fetches sent amounts of open transactions
         open_tx_sender = [
-            tx.amount for tx in self.get_open_transactions if tx.sender == participant
+            tx.signed_transaction.details.amount
+            for tx in self.get_open_transactions
+            if tx.signed_transaction.details.sender == participant
         ]
         tx_sender.append(open_tx_sender)
 
@@ -229,8 +257,11 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # We ignore open transactions here because you shouldn't be able to spend coins
         # before the transaction was confirmed + included in a block
         tx_recipient = [
-            [tx.amount for tx in block.transactions if tx.recipient == participant]
-            for block in self.chain
+            [
+                tx.signed_transaction.details.amount
+                for tx in all_transactions
+                if tx.signed_transaction.details.recipient == participant
+            ]
         ]
 
         logger.debug("Sender's received tx on the chain: %s", tx_recipient)
@@ -250,11 +281,11 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         return amount_received - amount_sent
 
     def add_transaction(
-        self, transaction: Transaction, is_receiving: bool = False
+        self, transaction: SignedRawTransaction, is_receiving: bool = False
     ) -> int:
         """
         Creates a new transaction to go into the next mined Block
-        :param transaction: <Transaction>
+        :param transaction: <SignedRawTransaction>
             A single Transaction
         :param is_receiving: Optional <bool>
             Use to determine if the transaction was created
@@ -264,7 +295,14 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         """
 
         if Verification.verify_transaction(transaction, self.get_balance):
-            self.__open_transactions.append(transaction)
+
+            final_tx = FinalTransaction(
+                transaction_hash=Verification.hash_transaction(transaction),
+                transaction_id=Verification.hash_transaction(transaction),
+                signed_transaction=transaction,
+            )
+
+            self.add_open_transaction(final_tx)
             if not is_receiving:
                 self.__broadcast_transaction(transaction)
         else:
@@ -309,10 +347,10 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         difficulty = difficulty if difficulty is not None else self.difficulty
         version = version if version is not None else self.version
         last_block = self.last_block
-        transaction_merkle_root = Transaction.get_merkle_root(
-            self.get_open_transactions
+        transaction_merkle_root = get_merkle_root(
+            [tx.signed_transaction for tx in self.get_open_transactions]
         )
-        previous_hash = Verification.hash_block_header(last_block)
+        previous_hash = Verification.hash_block_header(last_block.header)
 
         block_header = Header(
             version=version,
@@ -328,8 +366,21 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         # Create the transaction that will be rewarded to the miners for their work
         # The sender is "0" or "Mining" to signify that this node has mined a new coin.
-        reward_transaction = Transaction(
-            sender="0", recipient=address, nonce=0, amount=MINING_REWARD
+        reward_signed = SignedRawTransaction(
+            details=Details(
+                sender="0",
+                recipient=address,
+                nonce=0,
+                amount=MINING_REWARD,
+                timestamp=datetime.utcnow(),
+                public_key="coinbase",
+            ),
+            signature="coinbase",
+        )
+        reward_transaction = FinalTransaction(
+            transaction_hash=Verification.hash_transaction(reward_signed),
+            transaction_id=Verification.hash_transaction(reward_signed),
+            signed_transaction=reward_signed,
         )
 
         # Copy transactions instead of manipulating the original open_transactions list
@@ -337,15 +388,19 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # we don't have the reward transaction stored in the pending transactions
         copied_open_transactions = self.get_open_transactions
         for tx in copied_open_transactions:
-            if not Wallet.verify_transaction(tx):
+            if not Wallet.verify_transaction(tx.signed_transaction):
                 return None
 
+        FinalTransaction.SaveTransaction(self.data_location, reward_transaction)
         copied_open_transactions.append(reward_transaction)
+
         block = Block(
             index=self.next_index,
             header=block_header,
+            block_hash=Verification.hash_block_header(block_header),
+            size=len(str(block_header)),
             transaction_count=len(copied_open_transactions),
-            transactions=copied_open_transactions,
+            transactions=[t.transaction_hash for t in copied_open_transactions],
         )
 
         # Add the block to the node's chain
@@ -369,7 +424,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         if not Verification.valid_nonce(block.header):
             return False, "Nonce is not valid"
         if (
-            not Verification.hash_block_header(self.last_block)
+            not Verification.hash_block_header(self.last_block.header)
             == block.header.previous_hash
         ):
             return (
@@ -382,12 +437,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         stored_transactions = self.__open_transactions[:]
         for itx in block.transactions:
             for opentx in stored_transactions:
-                if (
-                    opentx.sender == itx.sender
-                    and opentx.recipient == itx.recipient
-                    and opentx.amount == itx.amount
-                    and opentx.signature == itx.signature
-                ):
+                if opentx.transaction_hash == itx:
                     try:
                         self.__open_transactions.remove(opentx)
                     except ValueError:
@@ -453,6 +503,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
             logger.info("Replacing our chain with neighbour's chain")
+            for b in new_chain:
+                Block.SaveBlock(self.data_location, b)
             self.chain = new_chain
             return True
 
