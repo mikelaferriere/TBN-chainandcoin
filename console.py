@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import logging
 import sys
 import json
@@ -21,7 +23,7 @@ from PyQt5.QtWidgets import (
 )
 
 from blockchain import Blockchain
-from transaction import Transaction
+from transaction import Details
 from util.logging0 import configure_logging
 from wallet import Wallet
 
@@ -176,11 +178,11 @@ class Window(
                 json.dumps(
                     [
                         {
-                            "sender": t.sender,
-                            "recipient": t.recipient,
-                            "amount": t.amount,
-                            "nonce": t.nonce,
-                            "signature": t.signature,
+                            "sender": t.signed_transaction.details.sender,
+                            "recipient": t.signed_transaction.details.recipient,
+                            "amount": t.signed_transaction.details.amount,
+                            "nonce": t.signed_transaction.details.nonce,
+                            "signature": t.signed_transaction.details.signature,
                         }
                         for t in self.blockchain.get_open_transactions
                     ],
@@ -274,26 +276,37 @@ class Window(
         amount = QLineEdit()
         submit = QPushButton("Submit Transaction")
 
-        def submit_transaction():
-            transaction = Transaction(
-                sender=self.wallet.address,
-                recipient=recipient.text(),
-                amount=float(amount.text()),
-                nonce=self.wallet.nonce,
-                public_key=self.wallet.public_key.hex(),
-            )
-            transaction.signature = self.wallet.sign_transaction(transaction)
+        def clear_transaction():
+            # Theres got to be a better way to handle these Widgets...
+            recipient.deleteLater()
+            recipientLabel.deleteLater()
+            amount.deleteLater()
+            amountLabel.deleteLater()
+            submit.deleteLater()
 
-            if self.blockchain.add_transaction(transaction):
-                logging.info("Added transaction!")
-                # Theres got to be a better way to handle these Widgets...
-                recipient.deleteLater()
-                recipientLabel.deleteLater()
-                amount.deleteLater()
-                amountLabel.deleteLater()
-                submit.deleteLater()
+        def submit_transaction():
+            if not self.wallet.logged_in:
+                logging.error(
+                    "No Wallet is currently logged in. Unable to create a transaction"
+                    "without one"
+                )
+                clear_transaction()
             else:
-                logging.info("Transaction failed!")
+                tx_details = Details(
+                    sender=self.wallet.address,
+                    recipient=recipient.text(),
+                    amount=float(amount.text()),
+                    nonce=self.wallet.nonce,
+                    timestamp=datetime.utcnow(),
+                    public_key=self.wallet.public_key.hex(),
+                )
+                transaction = self.wallet.sign_transaction(tx_details)
+
+                if self.blockchain.add_transaction(transaction):
+                    logging.info("Added transaction!")
+                    clear_transaction()
+                else:
+                    logging.info("Transaction failed!")
 
         submit.clicked.connect(submit_transaction)  # type: ignore
 

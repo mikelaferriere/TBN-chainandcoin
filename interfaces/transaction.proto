@@ -1,12 +1,19 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package transaction;
 
-message Transaction {
+message Details {
   optional string sender = 1;
   optional string recipient = 2;
   optional double amount = 3;
-  optional string signature = 4;
-  optional int32 nonce = 5;
+  optional int32 nonce = 4;
+  optional google.protobuf.Timestamp timestamp = 5;
   optional string public_key = 6;
+}
+
+message SignedRawTransaction {
+  optional Details details = 1;
+  optional string signature = 2;
 }

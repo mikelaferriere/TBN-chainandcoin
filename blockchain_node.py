@@ -11,7 +11,7 @@ from flask_cors import CORS
 
 from blockchain import Blockchain
 from block import Block
-from transaction import Transaction
+from transaction import Details, SignedRawTransaction
 from util.logging0 import configure_logging
 from wallet import Wallet
 
@@ -49,7 +49,7 @@ def create_app(
         address = w.address
 
     timestamp = None if not test else 0
-    blockchain = Blockchain(address, node_id, timestamp=timestamp)
+    blockchain = Blockchain(address, node_id, is_test=test, timestamp=timestamp)
 
     if not blockchain:
         raise ValueError("Unabled to initialize blockchain")
@@ -82,18 +82,7 @@ def create_app(
 
         response = {
             "message": "New Block Forged",
-            "block": {
-                "index": block.index,
-                "header": {
-                    "nonce": block.header.nonce,
-                    "previous_hash": block.header.previous_hash,
-                    "difficulty": block.header.difficulty,
-                    "version": block.header.version,
-                    "transaction_merkle_root": block.header.transaction_merkle_root,
-                },
-                "transaction_count": len(block.transactions),
-                "transactions": [t.SerializeToHex() for t in block.transactions],
-            },
+            "block": block.dict(),
         }
 
         return jsonify(response), 200
@@ -103,19 +92,23 @@ def create_app(
         values = request.get_json()
 
         # Check for required fields
-        required = ["sender", "recipient", "amount", "signature", "public_key", "nonce"]
+        required = ["transaction"]
         if not values or not all(k in values for k in required):
             return "Missing values", 400
 
+        details = values["transaction"]["details"]
         # Create a new Transaction
         index = blockchain.add_transaction(
-            Transaction(
-                sender=values["sender"],
-                recipient=values["recipient"],
-                amount=values["amount"],
-                nonce=values["nonce"],
-                public_key=values["public_key"],
-                signature=values["signature"],
+            SignedRawTransaction(
+                details=Details(
+                    sender=details["sender"],
+                    recipient=details["recipient"],
+                    amount=details["amount"],
+                    nonce=details["nonce"],
+                    timestamp=details["timestamp"],
+                    public_key=details["public_key"],
+                ),
+                signature=values["transaction"]["signature"],
             )
         )
 
@@ -138,7 +131,7 @@ def create_app(
         transactions : List[Transaction]
         """
         # Get pending Transactions
-        pending = [t.dict() for t in blockchain.get_open_transactions]
+        pending = [t.transaction_hash for t in blockchain.get_open_transactions]
         return jsonify(pending), 201
 
     @app.route("/chain", methods=["GET"])
@@ -186,7 +179,7 @@ def create_app(
                 "transaction_merkle_root": block.header.transaction_merkle_root,
             },
             "transaction_count": len(block.transactions),
-            "transactions": [t.SerializeToHex() for t in block.transactions],
+            "transactions": block.transactions,
         }
 
         return jsonify(response), 200
@@ -204,19 +197,13 @@ def create_app(
         -----
         Return code : 200
         Response :
-        chain : Transaction
+        tx : SignedRawTransaction
         """
-        transaction = Transaction.ParseFromHex(transaction_hash)
-        print(transaction)
-        response = {
-            "sender": transaction.sender,
-            "recipient": transaction.recipient,
-            "amount": transaction.amount,
-            "nonce": transaction.nonce,
-            "public_key": transaction.public_key,
-            "signature": transaction.signature,
-        }
-        return jsonify(response), 200
+        #
+        # Find tx in storage by hash
+        #
+        transaction = SignedRawTransaction.ParseFromHex(transaction_hash)
+        return jsonify(transaction.json()), 200
 
     @app.route("/nodes", methods=["GET"])
     def get_nodes():  # pylint: disable=unused-variable
@@ -335,7 +322,7 @@ def create_app(
 
         Parameters
         -----
-        transaction : Transaction as hex
+        transaction : SignedRawTransaction as hex
 
         Returns application/json
         -----
@@ -352,15 +339,17 @@ def create_app(
         if not all(key in values for key in required):
             response = {"message": "Some data is missing."}
             return jsonify(response), 400
-        t = Transaction.ParseFromHex(values["transaction"])
-        success = blockchain.add_transaction(t, is_receiving=True)
-        if success:
+        t = SignedRawTransaction.ParseFromHex(values["transaction"])
+        try:
+            block_index = blockchain.add_transaction(t, is_receiving=True)
             response = {
                 "message": "Successfully added transaction.",
                 "transaction": values["transaction"],
+                "block": block_index,
             }
             return jsonify(response), 201
-        response = {"message": "Creating a transaction failed."}
+        except ValueError as e:
+            response = {"message": "Creating a transaction failed.", "error": str(e)}
         return jsonify(response), 500
 
     return app

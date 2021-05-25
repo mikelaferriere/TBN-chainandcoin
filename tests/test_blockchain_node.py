@@ -1,5 +1,7 @@
 # flake8: noqa
 
+import json
+
 import flask_unittest
 from flask.testing import FlaskClient
 
@@ -79,7 +81,9 @@ class TestNodeMining(TestBase):
         self.assertStatus(rv, 400)
 
     def test_mining_success(self, client):
-        rv = client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
+        rv = client.post(
+            "/mine", json={"miner_address": TRANSACTION["details"]["sender"]}
+        )
         self.assertStatus(rv, 200)
 
 
@@ -104,28 +108,30 @@ class TestNodeTransaction(TestBase):
         self.assertStatus(rv, 400)
 
     def test_new_transaction_success(self, client):
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
-        rv = client.post("/transactions/new", json=TRANSACTION)
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
+        rv = client.post("/transactions/new", json={"transaction": TRANSACTION})
         self.assertStatus(rv, 201)
 
     def test_pending_transaction(self, client):
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
-        rv = client.post("/transactions/new", json=TRANSACTION)
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
+        rv = client.post("/transactions/new", json={"transaction": TRANSACTION})
         self.assertStatus(rv, 201)
 
         rv = client.get("/transactions/pending")
-        self.assertJsonEqual(rv, [TRANSACTION])
+        self.assertJsonEqual(
+            rv, ["3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee"]
+        )
 
     def test_by_transaction_hash(self, client):
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
-        client.post("/transactions/new", json=TRANSACTION)
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
+        client.post("/transactions/new", json={"transaction": TRANSACTION})
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
 
         rv = client.get("/transactions/" + TRANSACTION_HASH)
-        self.assertJsonEqual(rv, TRANSACTION)
+        self.assertJsonEqual(rv, json.dumps(TRANSACTION))
 
     def test_broadcast_transaction_happy_path(self, client):
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post(
             "/broadcast-transaction", json={"transaction": TRANSACTION_HASH}
         )
@@ -153,10 +159,9 @@ class TestNodeBlock(TestBase):
         self.assertTrue(isinstance(client, FlaskClient))
 
     def test_block_by_hash(self, client):
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
-        client.post("/transactions/new", json=TRANSACTION)
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
-
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
+        client.post("/transactions/new", json={"transaction": TRANSACTION})
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.get("/block/" + BLOCK_HASH)
 
         self.assertJsonEqual(
@@ -164,16 +169,16 @@ class TestNodeBlock(TestBase):
             {
                 "header": {
                     "difficulty": 4,
-                    "nonce": 72490,
-                    "previous_hash": "c65f499ea16147eda79176097c3a0db87eabc54b091434a38d099e04bb5f5397",
-                    "transaction_merkle_root": "0a2a307833653037316538643861343362326465366163613365613863386233316363323866373431306661122a307831623731636261383837646464386132336561343334643830323230626361396364383439363135190000000000001240228001653431653332353562363962336639333936363731663635333763363434313635653637373234386266353733383737346532313832393364643936386435306164373765323563386234643930323538626639343566343936656465666633346363316364666138303666653531363066363438653330623932646564653828003280013235653633613661646637373762306661383437336131643038363036653764353966333164396637396661663630386238396564396638376534316533363333623338336165316339633430386330313035666235343438366633373638613264633930383336303836333039616434343831303764306330396461366163",
+                    "nonce": 4485,
+                    "previous_hash": "e8eac1c3e88a9c4a256471541aeee273998d7e5ff7cd780b222181c1ab802937",
+                    "transaction_merkle_root": "0ac0010a2a30786539343532333833303835363235366134336530613534366334353634303630333130333437336212047465737419cdcccccccccc004020002a800164656338643463623263626438663739326538343136653638653932663463366335386261356236656438666663323961383962386461363735666334396138656638653239383962653965623033626133383432343463643164643335363465656137616563363038613333376137656461663734323366613934326636311280016634613030303263346638323138373638663835336664336337316238323564656561313864613634336435366635346565653464303335366466616135636135393439343631393461383362633635376338326561393631623463646636303665363136333138383334323239633031343563633933626234336562663437",
                     "version": 1,
                 },
                 "index": 2,
                 "transaction_count": 2,
                 "transactions": [
-                    "0a2a307833653037316538643861343362326465366163613365613863386233316363323866373431306661122a307831623731636261383837646464386132336561343334643830323230626361396364383439363135190000000000001240228001653431653332353562363962336639333936363731663635333763363434313635653637373234386266353733383737346532313832393364643936386435306164373765323563386234643930323538626639343566343936656465666633346363316364666138303666653531363066363438653330623932646564653828003280013235653633613661646637373762306661383437336131643038363036653764353966333164396637396661663630386238396564396638376534316533363333623338336165316339633430386330313035666235343438366633373638613264633930383336303836333039616434343831303764306330396461366163",
-                    "0a0130122a3078336530373165386438613433623264653661636133656138633862333163633238663734313066611900000000000024402800",
+                    "bc4b43442a2a0431bf5939bcaf59461ad01b0877b8f9ccf2fc38573f4a5662ed",
+                    "160de79ef9a8ca77d832cf513c5958a6cc2a430517d03191089809dc3a83a92f",
                 ],
             },
         )
@@ -197,7 +202,7 @@ class TestNodeBroadcastBlockFailures(flask_unittest.ClientTestCase):
     app = create_app(test=True)
 
     def test_lower_index(self, client):
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post(
             "/broadcast-block",
             json={
@@ -223,7 +228,7 @@ class TestNodeBroadcastBlockFailures(flask_unittest.ClientTestCase):
         self.assertStatus(rv, 500)
 
     def test_previous_hash_mismatch(self, client):
-        client.post("/mine", json={"miner_address": TRANSACTION["sender"]})
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post(
             "/broadcast-block",
             json={

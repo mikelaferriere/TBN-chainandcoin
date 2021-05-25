@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List
 from pydantic import BaseModel
 
 from google.protobuf.timestamp_pb2 import Timestamp
 
-from transaction import Transaction
 from generated import block_pb2
+
+from storage import Storage
 
 
 class Header(BaseModel):
@@ -100,7 +103,7 @@ class Block(BaseModel):
     index : <int> The location of the block in the chain (0 indexed)
     header : <Header> Block's header information
     transaction_count : <int> Count of transactions
-    transactions : <List[Transaction]> A list of the transactions in the block
+    transactions : <List[str]> A list of the transactions in the block
     block_hash : <optional str> Hash of the current block header
     size : <optional float> The size of the block (KB or MB)
     """
@@ -108,9 +111,9 @@ class Block(BaseModel):
     index: int
     header: Header
     transaction_count: int
-    transactions: List[Transaction]
-    block_hash: Optional[str] = None
-    size: Optional[int] = 0
+    transactions: List[str] = []
+    block_hash: str
+    size: int
 
     def SerializeToString(self) -> bytes:
         timestamp = Timestamp()
@@ -129,7 +132,7 @@ class Block(BaseModel):
                 difficulty=self.header.difficulty,
             ),
             transaction_count=self.transaction_count,
-            transactions=[t.ToProtobuf() for t in self.transactions],
+            transactions=self.transactions,
         )
 
         return block.SerializeToString()
@@ -148,9 +151,27 @@ class Block(BaseModel):
             block_hash=block.block_hash,
             header=Header.FromProtobuf(block.header),
             transaction_count=block.transaction_count,
-            transactions=[Transaction.FromProtobuf(t) for t in block.transactions],
+            transactions=list(block.transactions),
         )
 
     @staticmethod
     def ParseFromHex(block_hex: str) -> Block:
         return Block.ParseFromString(bytes.fromhex(block_hex))
+
+    @staticmethod
+    def LoadBlocks() -> List[Block]:
+        block_storage = Storage(Path("data"))
+        block_files = block_storage.list_files(Path("blocks"))
+        blocks = []
+        for f in block_files:
+            b = block_storage.read_string(Path(f"blocks/{f}"))
+            if not b:
+                raise ValueError("Found a file in block folder that was not a block")
+
+            blocks.append(Block.ParseFromHex(b))
+        return blocks
+
+    @staticmethod
+    def SaveBlock(block: Block) -> None:
+        block_storage = Storage(Path("data/blocks"))
+        block_storage.save(Path(block.block_hash), block.SerializeToHex())
