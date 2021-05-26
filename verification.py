@@ -74,6 +74,11 @@ class Verification:
         :param difficulty: <int>
         :return: <int>
         """
+        logger.info(
+            "Mining block for %s version and %s difficulty",
+            header.version,
+            header.difficulty,
+        )
         while not Verification.valid_nonce(header):
             header.nonce += 1
 
@@ -96,9 +101,8 @@ class Verification:
                 index - 1,
             )
 
-            if block.header.previous_hash != cls.hash_block_header(
-                blockchain[index - 1].header
-            ):
+            computed_previous_hash = cls.hash_block_header(blockchain[index - 1].header)
+            if block.header.previous_hash != computed_previous_hash:
                 logger.error(
                     "Previous block hashed not equal to previous hash stored in current block"
                 )

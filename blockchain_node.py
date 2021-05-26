@@ -11,8 +11,9 @@ from flask_cors import CORS
 
 from blockchain import Blockchain
 from block import Block
-from transaction import Details, SignedRawTransaction
+from transaction import Details, FinalTransaction, SignedRawTransaction
 from util.logging0 import configure_logging
+from verification import Verification
 from wallet import Wallet
 
 configure_logging()
@@ -82,7 +83,7 @@ def create_app(
 
         response = {
             "message": "New Block Forged",
-            "block": block.dict(),
+            "block": block.json(),
         }
 
         return jsonify(response), 200
@@ -98,6 +99,7 @@ def create_app(
 
         details = values["transaction"]["details"]
         # Create a new Transaction
+
         index = blockchain.add_transaction(
             SignedRawTransaction(
                 details=Details(
@@ -168,21 +170,10 @@ def create_app(
         Response :
         chain : Block
         """
-        block = Block.ParseFromHex(block_hash)
-        response = {
-            "index": block.index,
-            "header": {
-                "nonce": block.header.nonce,
-                "previous_hash": block.header.previous_hash,
-                "difficulty": block.header.difficulty,
-                "version": block.header.version,
-                "transaction_merkle_root": block.header.transaction_merkle_root,
-            },
-            "transaction_count": len(block.transactions),
-            "transactions": block.transactions,
-        }
-
-        return jsonify(response), 200
+        solved_block = Block.FindBlock(blockchain.data_location, block_hash)
+        if solved_block:
+            return jsonify(solved_block.json()), 200
+        return jsonify({"error": f"No block found with hash {block_hash}"}), 404
 
     @app.route("/transactions/<transaction_hash>", methods=["GET"])
     def transaction_by_hash(transaction_hash):  # pylint: disable=unused-variable
@@ -341,6 +332,19 @@ def create_app(
             return jsonify(response), 400
         t = SignedRawTransaction.ParseFromHex(values["transaction"])
         try:
+            if t.signature == "coinbase":
+                # This is a mining transaction, so just save it
+                tx = FinalTransaction(
+                    transaction_hash=Verification.hash_transaction(t),
+                    transaction_id=Verification.hash_transaction(t),
+                    signed_transaction=t,
+                )
+                FinalTransaction.SaveMiningTransaction(blockchain.data_location, tx)
+                response = {
+                    "message": "Successfully saved mining transaction.",
+                    "transaction": values["transaction"],
+                }
+                return jsonify(response), 201
             block_index = blockchain.add_transaction(t, is_receiving=True)
             response = {
                 "message": "Successfully added transaction.",

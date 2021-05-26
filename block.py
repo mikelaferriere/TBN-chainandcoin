@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Optional
 from pydantic import BaseModel
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -170,6 +170,14 @@ class Block(BaseModel):
 
             blocks.append(Block.ParseFromHex(b))
         return blocks
+
+    @staticmethod
+    def FindBlock(data_location: str, block_hash: str) -> Optional[Block]:
+        block_storage = Storage(Path(data_location))
+        block = block_storage.read_string(Path("blocks") / block_hash)
+        if block is None:
+            return None
+        return Block.ParseFromHex(block)
 
     @staticmethod
     def SaveBlock(data_location: str, block: Block) -> None:
