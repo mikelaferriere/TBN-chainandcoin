@@ -128,8 +128,19 @@ class TestNodeTransaction(TestBase):
         client.post("/transactions/new", json={"transaction": TRANSACTION})
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
 
-        rv = client.get("/transactions/" + TRANSACTION_HASH)
-        self.assertJsonEqual(rv, json.dumps(TRANSACTION))
+        rv = client.get(
+            "/transaction/3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee"
+        )
+        self.assertJsonEqual(
+            rv,
+            json.dumps(
+                {
+                    "transaction_hash": "3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee",
+                    "transaction_id": "3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee",
+                    "signed_transaction": TRANSACTION,
+                }
+            ),
+        )
 
     def test_broadcast_transaction_happy_path(self, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
