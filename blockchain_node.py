@@ -83,7 +83,7 @@ def create_app(
 
         response = {
             "message": "New Block Forged",
-            "block": block.dict(),
+            "block": block.json(),
         }
 
         return jsonify(response), 200
@@ -172,8 +172,7 @@ def create_app(
         """
         solved_block = Block.FindBlock(blockchain.data_location, block_hash)
         if solved_block:
-            block = Block.ParseFromHex(solved_block)
-            return jsonify(block.json()), 200
+            return jsonify(solved_block.json()), 200
         return jsonify({"error": f"No block found with hash {block_hash}"}), 404
 
     @app.route("/transactions/<transaction_hash>", methods=["GET"])
