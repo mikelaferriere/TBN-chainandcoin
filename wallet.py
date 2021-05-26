@@ -244,5 +244,6 @@ class Wallet:
 
             return result
         except (ValueError, TypeError) as e:
+            logger.warning("Failure for tx: %s", tx.dict())
             logger.exception(e)
             return False

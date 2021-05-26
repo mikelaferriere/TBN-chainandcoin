@@ -64,31 +64,28 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             except Exception:
                 pass
 
-        saved_blocks = Block.LoadBlocks(self.data_location)
+        # Create the 'genesis' block. This is the inital block.
+        header = Header(
+            timestamp=timestamp if timestamp is not None else datetime.utcnow(),
+            transaction_merkle_root=get_merkle_root([]),
+            nonce=100,
+            previous_hash="",
+            difficulty=difficulty,
+            version=version,
+        )
 
-        if not saved_blocks:
-            # Create the 'genesis' block. This is the inital block.
-            header = Header(
-                timestamp=timestamp if timestamp is not None else datetime.utcnow(),
-                transaction_merkle_root=get_merkle_root([]),
-                nonce=100,
-                previous_hash="",
-                difficulty=difficulty,
-                version=version,
+        self.chain = [
+            Block(
+                index=0,
+                block_hash=Verification.hash_block_header(header),
+                size=len(str(header)),
+                header=header,
+                transaction_count=0,
+                transactions=[],
             )
+        ]
 
-            saved_blocks.append(
-                Block(
-                    index=0,
-                    block_hash=Verification.hash_block_header(header),
-                    size=len(str(header)),
-                    header=header,
-                    transaction_count=0,
-                    transactions=[],
-                )
-            )
-
-        self.chain = saved_blocks
+        self.load_data()
 
     @property
     def chain(self) -> List[Block]:
@@ -121,12 +118,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         Adds the current block to the chain. By this time, it has been fully verified and
         the chain will be valid once it is added
         """
-        Block.SaveBlock(self.data_location, block)
         self.__chain.append(block)
-
-    def add_open_transaction(self, transaction: FinalTransaction) -> None:
-        FinalTransaction.SaveTransaction(self.data_location, transaction)
-        self.__open_transactions.append(transaction)
 
     @property
     def get_open_transactions(self) -> List[FinalTransaction]:
@@ -155,7 +147,32 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         :return: <str>
         """
 
-        return [c.SerializeToHex() for c in self.chain]
+        return [b.block_hash for b in self.chain]
+
+    def save_data(self) -> None:
+        try:
+            for transaction in self.get_open_transactions:
+                FinalTransaction.SaveTransaction(self.data_location, transaction)
+
+            for block in self.chain:
+                Block.SaveBlock(self.data_location, block)
+        except Exception as e:
+            logger.exception(e)
+
+    def load_data(self) -> None:
+        try:
+            txs = FinalTransaction.LoadOpenTransactions(self.data_location)
+            if txs:
+                self.__open_transactions = txs
+
+            chain = Block.LoadBlocks(self.data_location)
+            if chain:
+                # Ensure that the chain is sorted by index
+                chain.sort(key=lambda x: x.index, reverse=False)
+
+                self.chain = chain
+        except Exception as e:
+            logger.exception(e)
 
     def __broadcast_transaction(self, transaction: SignedRawTransaction) -> None:
         """
@@ -212,7 +229,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         else:
             participant = sender
 
-        all_transactions = FinalTransaction.LoadTransactions(self.data_location)
+        all_transactions = FinalTransaction.LoadAllTransactions(self.data_location)
         # Fetch a list of all sent coin amounts for the given person
         # (empty lists are returned if the person was NOT the sender)
 
@@ -295,14 +312,15 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         """
 
         if Verification.verify_transaction(transaction, self.get_balance):
-
             final_tx = FinalTransaction(
                 transaction_hash=Verification.hash_transaction(transaction),
                 transaction_id=Verification.hash_transaction(transaction),
                 signed_transaction=transaction,
             )
 
-            self.add_open_transaction(final_tx)
+            self.__open_transactions.append(final_tx)
+            self.save_data()
+
             if not is_receiving:
                 self.__broadcast_transaction(transaction)
         else:
@@ -377,6 +395,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             ),
             signature="coinbase",
         )
+
         reward_transaction = FinalTransaction(
             transaction_hash=Verification.hash_transaction(reward_signed),
             transaction_id=Verification.hash_transaction(reward_signed),
@@ -391,7 +410,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             if not Wallet.verify_transaction(tx.signed_transaction):
                 return None
 
-        FinalTransaction.SaveTransaction(self.data_location, reward_transaction)
+        FinalTransaction.SaveMiningTransaction(self.data_location, reward_transaction)
+        self.__broadcast_transaction(reward_transaction.signed_transaction)
+
         copied_open_transactions.append(reward_transaction)
 
         block = Block(
@@ -408,6 +429,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
         # Reset the open list of transactions
         self.__open_transactions = []
+        FinalTransaction.DeleteOpenTransactions(self.data_location)
+        self.save_data()
 
         self.__broadcast_block(block)
 
@@ -442,6 +465,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                         self.__open_transactions.remove(opentx)
                     except ValueError:
                         logger.warning("Item was already removed: %s", opentx)
+
+        self.save_data()
         return True, "success"
 
     def register_node(self, address: str) -> None:
@@ -457,7 +482,6 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         full_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
         self.nodes.add(full_url)
         logger.debug("Registered node: %s", full_url)
-        self.resolve_conflicts()
 
     def resolve_conflicts(self) -> bool:
         """
@@ -473,7 +497,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         new_chain = None
 
         # We're only looking for chains longer than ours
-        max_length = len(self.chain)
+        current_chain_length = len(self.chain)
 
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
@@ -481,31 +505,43 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
             if response.ok:
                 length = response.json()["length"]
-                chain_hashes = response.json()["chain"]
+                chain_hexs = response.json()["chain"]
 
                 chain = []
 
-                for b in chain_hashes:
+                for b in chain_hexs:
                     block = Block.ParseFromHex(b)
                     chain.append(block)
 
-                if length == 1 and max_length == 1 and Verification.verify_chain(chain):
+                if (
+                    length == 1
+                    and current_chain_length == 1
+                    and Verification.verify_chain(chain)
+                ):
                     logger.debug("Chain's are both 1 length so preferring neighbour's")
-                    max_length = length
+                    current_chain_length = length
                     new_chain = chain
 
+                # Ensure that the chain is sorted by index
+                chain.sort(key=lambda x: x.index, reverse=False)
+
                 # Check if the length is longer and the chain is valid
-                if length > max_length and Verification.verify_chain(chain):
+                if length > current_chain_length:
                     logger.debug("Neighbour's chain is longer than ours")
-                    max_length = length
-                    new_chain = chain
+                    logger.debug("Verifying neighbour's chain")
+                    if Verification.verify_chain(chain):
+                        logger.debug("Neighbour's chain successfully verified")
+                        current_chain_length = length
+                        new_chain = chain
+                    else:
+                        logger.warning("Neighbour's chain failed verified")
 
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
             logger.info("Replacing our chain with neighbour's chain")
-            for b in new_chain:
-                Block.SaveBlock(self.data_location, b)
             self.chain = new_chain
-            return True
+        else:
+            logger.info("Keeping this node's chain. Now making sure its saved")
 
-        return False
+        self.save_data()
+        return new_chain is not None and len(new_chain) > 0
