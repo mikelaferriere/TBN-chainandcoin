@@ -175,7 +175,7 @@ def create_app(
             return jsonify(solved_block.json()), 200
         return jsonify({"error": f"No block found with hash {block_hash}"}), 404
 
-    @app.route("/transactions/<transaction_hash>", methods=["GET"])
+    @app.route("/transaction/<transaction_hash>", methods=["GET"])
     def transaction_by_hash(transaction_hash):  # pylint: disable=unused-variable
         """
         Returns a cleartext transaction by its hash
@@ -193,8 +193,15 @@ def create_app(
         #
         # Find tx in storage by hash
         #
-        transaction = SignedRawTransaction.ParseFromHex(transaction_hash)
-        return jsonify(transaction.json()), 200
+        transaction = FinalTransaction.FindTransaction(
+            blockchain.data_location, transaction_hash
+        )
+        if transaction:
+            return jsonify(transaction.json()), 200
+        return (
+            jsonify({"error": f"No transaction found with hash {transaction_hash}"}),
+            404,
+        )
 
     @app.route("/nodes", methods=["GET"])
     def get_nodes():  # pylint: disable=unused-variable

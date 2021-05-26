@@ -84,7 +84,7 @@ class Storage:
             with open(full_path, mode="rb") as f:
                 return f.read()
         except FileNotFoundError:
-            logger.error("Path %s not found", full_path)
+            logger.warning("Path %s not found", full_path)
         except (IOError, IndexError) as e:
             logger.error("Failed to read bytes from %s", full_path)
             logger.exception(e)
@@ -97,7 +97,7 @@ class Storage:
             with open(full_path, mode="r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            logger.error("Path %s not found", full_path)
+            logger.warning("Path %s not found", full_path)
         except (IOError, IndexError) as e:
             logger.error("Failed to read json from %s", full_path)
             logger.exception(e)
@@ -110,7 +110,7 @@ class Storage:
             with open(full_path, mode="r") as f:
                 return f.read()
         except FileNotFoundError:
-            logger.error("Path %s not found", full_path)
+            logger.warning("Path %s not found", full_path)
         except (IOError, IndexError) as e:
             logger.error("Failed to read string from %s", full_path)
             logger.exception(e)
