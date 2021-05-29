@@ -231,7 +231,6 @@ class Wallet:
         signature = self.private_key.sign(d)
 
         logger.debug("Transaction signed successfully")
-
         return SignedRawTransaction(details=details, signature=signature.hex())
 
     @staticmethod
@@ -243,9 +242,7 @@ class Wallet:
         """
         logger.info("Verifying transaction")
         message = tx.details.SerializeToString()
-
         signature = bytes.fromhex(tx.signature)
-
         vk = ecdsa.VerifyingKey.from_string(
             bytes.fromhex(tx.details.public_key),
             curve=ecdsa.SECP256k1,
