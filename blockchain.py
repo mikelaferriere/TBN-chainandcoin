@@ -152,7 +152,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
     def save_data(self) -> None:
         try:
             for transaction in self.get_open_transactions:
-                FinalTransaction.SaveTransaction(self.data_location, transaction)
+                FinalTransaction.SaveTransaction(
+                    self.data_location, transaction, "open"
+                )
 
             for block in self.chain:
                 Block.SaveBlock(self.data_location, block)
@@ -161,7 +163,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
     def load_data(self) -> None:
         try:
-            txs = FinalTransaction.LoadOpenTransactions(self.data_location)
+            txs = FinalTransaction.LoadTransactions(self.data_location, "open")
             if txs:
                 self.__open_transactions = txs
 
@@ -230,6 +232,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             participant = sender
 
         all_transactions = FinalTransaction.LoadAllTransactions(self.data_location)
+
         # Fetch a list of all sent coin amounts for the given person
         # (empty lists are returned if the person was NOT the sender)
 
@@ -243,20 +246,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             ]
         ]
 
-        logger.debug("Sender's sent tx on the chain: %s", tx_sender)
-
-        # Fetch a list of all sent coin amounts for the given person
-        # (empty lists are returned if the person was NOT the sender)
-        #
-        # This fetches sent amounts of open transactions
-        open_tx_sender = [
-            tx.signed_transaction.details.amount
-            for tx in self.get_open_transactions
-            if tx.signed_transaction.details.sender == participant
-        ]
-        tx_sender.append(open_tx_sender)
-
-        logger.debug("Sender's sent tx in open transactions: %s", tx_sender)
+        logger.debug("Sender's sent transactions on the chain: %s", tx_sender)
 
         amount_sent = reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
@@ -266,7 +256,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             0.0,
         )
 
-        logger.debug("Sender's total sent: %s", amount_sent)
+        logger.debug("Sender's total coin sent: %s", amount_sent)
 
         # This fetches received coin amounts of transactions that were already included
         # in blocks of the blockchain
@@ -281,7 +271,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             ]
         ]
 
-        logger.debug("Sender's received tx on the chain: %s", tx_recipient)
+        logger.debug("Sender's received transactions on the chain: %s", tx_recipient)
 
         amount_received = reduce(
             lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
@@ -291,7 +281,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             0.0,
         )
 
-        logger.debug("Sender's total received: %s", amount_received)
+        logger.debug("Sender's total coin received: %s", amount_received)
         logger.debug("Sender's balance: %s", (amount_received - amount_sent))
 
         # Return the total balance
@@ -329,7 +319,6 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                 "transaction. We may want to change this to not raise "
                 "an exception later, but for now, we should break."
             )
-
         return self.last_block.index + 1
 
     def mine_block(
@@ -410,7 +399,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             if not Wallet.verify_transaction(tx.signed_transaction):
                 return None
 
-        FinalTransaction.SaveMiningTransaction(self.data_location, reward_transaction)
+        FinalTransaction.SaveTransaction(
+            self.data_location, reward_transaction, "mining"
+        )
         self.__broadcast_transaction(reward_transaction.signed_transaction)
 
         copied_open_transactions.append(reward_transaction)
@@ -428,8 +419,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.add_block_to_chain(block)
 
         # Reset the open list of transactions
+        logger.info("Moving open transaction to confirmed storage")
+        FinalTransaction.MoveOpenTransactions(self.data_location)
         self.__open_transactions = []
-        FinalTransaction.DeleteOpenTransactions(self.data_location)
         self.save_data()
 
         self.__broadcast_block(block)

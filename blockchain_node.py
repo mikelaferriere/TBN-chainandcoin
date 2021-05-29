@@ -346,7 +346,7 @@ def create_app(
                     transaction_id=Verification.hash_transaction(t),
                     signed_transaction=t,
                 )
-                FinalTransaction.SaveMiningTransaction(blockchain.data_location, tx)
+                FinalTransaction.SaveTransaction(blockchain.data_location, tx, "mining")
                 response = {
                     "message": "Successfully saved mining transaction.",
                     "transaction": values["transaction"],

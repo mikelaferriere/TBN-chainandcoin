@@ -4,6 +4,7 @@ Data Storage class
 import os
 import logging
 import json
+import shutil
 
 from pathlib import Path
 from typing import Dict, List, Optional, Union
@@ -15,6 +16,12 @@ logger = logging.getLogger(__name__)
 class Storage:
     def __init__(self, base_path: Path) -> None:
         self.base_path = base_path
+
+    def move_file(self, suffix: Path, new_suffix: Path) -> None:
+        old_path = self.base_path / suffix
+        new_path = self.base_path / new_suffix
+        Path(new_path.parent).mkdir(parents=True, exist_ok=True)
+        shutil.move(str(old_path.resolve()), str(new_path.resolve()))
 
     def list_files(self, suffix: Path) -> List[str]:
         full_path = self.base_path / suffix
@@ -68,8 +75,8 @@ class Storage:
             result = Storage.save_bytes(full_path, content)
         elif isinstance(content, dict):
             result = Storage.save_json(full_path, content)
-        elif isinstance(content, str):
-            result = Storage.save_str(full_path, content)
+        elif isinstance(content, (int, str)):
+            result = Storage.save_str(full_path, str(content))
         else:
             logger.error(
                 "Type (%s) is not supported for saving. Retry with a valid type",

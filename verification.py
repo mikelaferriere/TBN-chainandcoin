@@ -139,11 +139,8 @@ class Verification:
                 "Checking the sender's balance can cover the amount being transferred"
             )
             sender_balance = get_balance(transaction.details.sender)
-            logger.info("Sender's balance: %s", sender_balance)
-            return (
-                sender_balance >= transaction.details.amount
-                and Wallet.verify_transaction(transaction)
-            )
+            if sender_balance >= transaction.details.amount:
+                logger.info("Sender has enough coin to create this transaction")
         return Wallet.verify_transaction(transaction)
 
     @classmethod

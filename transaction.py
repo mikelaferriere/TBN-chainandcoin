@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from datetime import datetime
 from typing import Any, List, Optional
 from pathlib import Path
@@ -11,6 +13,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from generated import transaction_pb2
 from storage import Storage
+
+logger = logging.getLogger(__name__)
 
 
 def convert_to_merkle(
@@ -161,17 +165,24 @@ class FinalTransaction(BaseModel):
     signed_transaction: SignedRawTransaction
 
     @staticmethod
-    def LoadOpenTransactions(data_location: str) -> List[FinalTransaction]:
+    def LoadTransactions(data_location: str, type_: str) -> List[FinalTransaction]:
+        accepted_types = ["open", "confirmed", "mining"]
+        if type_ not in accepted_types:
+            raise ValueError(f"{type_} is not a supported transaction type")
+
+        folder_name = f"{type}_transactions"
         storage = Storage(Path(data_location))
-        tx_files = storage.list_files(Path("open_transactions"))
+        tx_files = storage.list_files(Path(folder_name))
+        logger.debug("Found transactions: %s", tx_files)
         txs = []
         for f in tx_files:
-            tx = storage.read_string(Path("open_transactions") / f)
+            tx = storage.read_string(Path(folder_name) / f)
             if not tx:
                 raise ValueError(
-                    "Found a file in transaction folder that was not a transaction"
+                    f"Found a file in {folder_name} folder that was not a transaction"
                 )
 
+            logger.debug("Found transaction: %s", f)
             txs.append(
                 FinalTransaction(
                     transaction_hash=f,
@@ -183,39 +194,15 @@ class FinalTransaction(BaseModel):
 
     @staticmethod
     def LoadAllTransactions(data_location: str) -> List[FinalTransaction]:
-        storage = Storage(Path(data_location))
-        tx_files = storage.list_files(Path("open_transactions"))
-        txs = []
-        for f in tx_files:
-            tx = storage.read_string(Path("open_transactions") / f)
-            if not tx:
-                raise ValueError(
-                    "Found a file in transaction folder that was not a transaction"
-                )
+        all_txs = []
+        open_tx = FinalTransaction.LoadTransactions(data_location, "open")
+        confirmed_tx = FinalTransaction.LoadTransactions(data_location, "confirmed")
+        mining_tx = FinalTransaction.LoadTransactions(data_location, "mining")
 
-            txs.append(
-                FinalTransaction(
-                    transaction_hash=f,
-                    transaction_id=f,
-                    signed_transaction=SignedRawTransaction.ParseFromHex(tx),
-                )
-            )
-        tx_files = storage.list_files(Path("transactions"))
-        for f in tx_files:
-            tx = storage.read_string(Path("transactions") / f)
-            if not tx:
-                raise ValueError(
-                    "Found a file in transaction folder that was not a transaction"
-                )
-
-            txs.append(
-                FinalTransaction(
-                    transaction_hash=f,
-                    transaction_id=f,
-                    signed_transaction=SignedRawTransaction.ParseFromHex(tx),
-                )
-            )
-        return txs
+        all_txs.extend(open_tx)
+        all_txs.extend(confirmed_tx)
+        all_txs.extend(mining_tx)
+        return all_txs
 
     @staticmethod
     def FindTransaction(
@@ -223,7 +210,10 @@ class FinalTransaction(BaseModel):
     ) -> Optional[FinalTransaction]:
         storage = Storage(Path(data_location))
         open_tx = storage.read_string(Path("open_transactions") / transaction_hash)
-        confirmed_tx = storage.read_string(Path("transactions") / transaction_hash)
+        confirmed_tx = storage.read_string(
+            Path("confirmed_transactions") / transaction_hash
+        )
+        mining_tx = storage.read_string(Path("mining_transactions") / transaction_hash)
         if open_tx is not None:
             return FinalTransaction(
                 transaction_hash=transaction_hash,
@@ -236,37 +226,34 @@ class FinalTransaction(BaseModel):
                 transaction_id=transaction_hash,
                 signed_transaction=SignedRawTransaction.ParseFromHex(confirmed_tx),
             )
+        if mining_tx is not None:
+            return FinalTransaction(
+                transaction_hash=transaction_hash,
+                transaction_id=transaction_hash,
+                signed_transaction=SignedRawTransaction.ParseFromHex(mining_tx),
+            )
         return None
 
     @staticmethod
-    def SaveMiningTransaction(
-        data_location: str, transaction: FinalTransaction
+    def SaveTransaction(
+        data_location: str, transaction: FinalTransaction, type_: str
     ) -> None:
-        storage = Storage(Path(data_location) / "transactions")
+        accepted_types = ["open", "mining"]
+        if type_ not in accepted_types:
+            raise ValueError(f"{type_} is not a supported transaction type")
+
+        storage = Storage(Path(data_location) / f"{type_}_transactions")
         storage.save(
             Path(transaction.transaction_hash),
             transaction.signed_transaction.SerializeToHex(),
         )
 
     @staticmethod
-    def SaveTransaction(data_location: str, transaction: FinalTransaction) -> None:
-        storage = Storage(Path(data_location) / "open_transactions")
-        storage.save(
-            Path(transaction.transaction_hash),
-            transaction.signed_transaction.SerializeToHex(),
-        )
-        storage = Storage(Path(data_location) / "transactions")
-        storage.save(
-            Path(transaction.transaction_hash),
-            transaction.signed_transaction.SerializeToHex(),
-        )
-
-    @staticmethod
-    def DeleteOpenTransactions(data_location: str) -> None:
-        try:
-            pth = Path(data_location) / "open_transactions"
-            for child in pth.glob("*"):
-                child.unlink()
-            pth.rmdir()
-        except FileNotFoundError:
-            pass
+    def MoveOpenTransactions(data_location: str) -> None:
+        storage = Storage(Path(data_location))
+        open_tx = storage.list_files(Path("open_transactions"))
+        for tx in open_tx:
+            storage.move_file(
+                Path(data_location) / "open_transactions" / tx,
+                Path(data_location) / "confirmed_transactions" / tx,
+            )
