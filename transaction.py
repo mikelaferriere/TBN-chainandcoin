@@ -182,15 +182,15 @@ class FinalTransaction(BaseModel):
         return txs
 
     @staticmethod
-    def LoadAllTransactions(data_location: str) -> List[FinalTransaction]:
+    def LoadConfirmedTransactions(data_location: str) -> List[FinalTransaction]:
         storage = Storage(Path(data_location))
-        tx_files = storage.list_files(Path("open_transactions"))
+        tx_files = storage.list_files(Path("confirmed_transactions"))
         txs = []
         for f in tx_files:
-            tx = storage.read_string(Path("open_transactions") / f)
+            tx = storage.read_string(Path("confirmed_transactions") / f)
             if not tx:
                 raise ValueError(
-                    "Found a file in transaction folder that was not a transaction"
+                    "Found a file in confirmed transaction folder that was not a transaction"
                 )
 
             txs.append(
@@ -200,12 +200,48 @@ class FinalTransaction(BaseModel):
                     signed_transaction=SignedRawTransaction.ParseFromHex(tx),
                 )
             )
-        tx_files = storage.list_files(Path("transactions"))
+        return txs
+
+    @staticmethod
+    def LoadAllTransactions(data_location: str) -> List[FinalTransaction]:
+        storage = Storage(Path(data_location))
+        tx_files = storage.list_files(Path("open_transactions"))
+        txs = []
         for f in tx_files:
-            tx = storage.read_string(Path("transactions") / f)
+            tx = storage.read_string(Path("open_transactions") / f)
             if not tx:
                 raise ValueError(
-                    "Found a file in transaction folder that was not a transaction"
+                    "Found a file in open transaction folder that was not a transaction"
+                )
+
+            txs.append(
+                FinalTransaction(
+                    transaction_hash=f,
+                    transaction_id=f,
+                    signed_transaction=SignedRawTransaction.ParseFromHex(tx),
+                )
+            )
+        tx_files = storage.list_files(Path("confirmed_transactions"))
+        for f in tx_files:
+            tx = storage.read_string(Path("confirmed_transactions") / f)
+            if not tx:
+                raise ValueError(
+                    "Found a file in confirmed transaction folder that was not a transaction"
+                )
+
+            txs.append(
+                FinalTransaction(
+                    transaction_hash=f,
+                    transaction_id=f,
+                    signed_transaction=SignedRawTransaction.ParseFromHex(tx),
+                )
+            )
+        tx_files = storage.list_files(Path("mining_transactions"))
+        for f in tx_files:
+            tx = storage.read_string(Path("mining_transactions") / f)
+            if not tx:
+                raise ValueError(
+                    "Found a file in mining transaction folder that was not a transaction"
                 )
 
             txs.append(
@@ -223,7 +259,12 @@ class FinalTransaction(BaseModel):
     ) -> Optional[FinalTransaction]:
         storage = Storage(Path(data_location))
         open_tx = storage.read_string(Path("open_transactions") / transaction_hash)
-        confirmed_tx = storage.read_string(Path("transactions") / transaction_hash)
+        confirmed_tx = storage.read_string(
+            Path("comfirmed_transactions") / transaction_hash
+        )
+        confirmed_tx = storage.read_string(
+            Path("mining_transactions") / transaction_hash
+        )
         if open_tx is not None:
             return FinalTransaction(
                 transaction_hash=transaction_hash,
@@ -242,31 +283,26 @@ class FinalTransaction(BaseModel):
     def SaveMiningTransaction(
         data_location: str, transaction: FinalTransaction
     ) -> None:
-        storage = Storage(Path(data_location) / "transactions")
+        storage = Storage(Path(data_location) / "mining_transactions")
         storage.save(
             Path(transaction.transaction_hash),
             transaction.signed_transaction.SerializeToHex(),
         )
 
     @staticmethod
-    def SaveTransaction(data_location: str, transaction: FinalTransaction) -> None:
+    def SaveOpenTransaction(data_location: str, transaction: FinalTransaction) -> None:
         storage = Storage(Path(data_location) / "open_transactions")
         storage.save(
             Path(transaction.transaction_hash),
             transaction.signed_transaction.SerializeToHex(),
         )
-        storage = Storage(Path(data_location) / "transactions")
-        storage.save(
-            Path(transaction.transaction_hash),
-            transaction.signed_transaction.SerializeToHex(),
-        )
 
     @staticmethod
-    def DeleteOpenTransactions(data_location: str) -> None:
-        try:
-            pth = Path(data_location) / "open_transactions"
-            for child in pth.glob("*"):
-                child.unlink()
-            pth.rmdir()
-        except FileNotFoundError:
-            pass
+    def MoveOpenTransactions(data_location: str) -> None:
+        storage = Storage(Path(data_location))
+        open_tx = storage.list_files(Path("open_transactions"))
+        for tx in open_tx:
+            storage.move_file(
+                Path(data_location) / "open_transactions" / tx,
+                Path(data_location) / "confirmed_transactions" / tx,
+            )

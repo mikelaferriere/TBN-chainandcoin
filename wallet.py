@@ -6,7 +6,10 @@ NOTE 2: This library does not protect against side-channel attacks
 """
 import logging
 import hashlib
+import shutil
+import tempfile
 
+from uuid import uuid4
 from pathlib import Path
 from typing import Optional
 
@@ -32,10 +35,19 @@ class Wallet:
         self.nonce = 0
         self.logged_in = False
 
-        self.storage = Storage(Path("wallet"))
+        data_location = "wallet"
 
         if test:
-            self.create_login("test", save=False)
+            data_location = f"{tempfile.tempdir}/wallet/{uuid4()}"
+            try:
+                shutil.rmtree(data_location)
+            except Exception:
+                pass
+
+        self.storage = Storage(Path(data_location))
+
+        if test:
+            self.create_login("test")
 
     def set_is_logged_in(self) -> bool:
         """
@@ -230,20 +242,13 @@ class Wallet:
         transaction, will be a sign of nefarious actions.
         """
         logger.info("Verifying transaction")
-        try:
-            message = tx.details.SerializeToString()
+        message = tx.details.SerializeToString()
 
-            signature = bytes.fromhex(tx.signature)
+        signature = bytes.fromhex(tx.signature)
 
-            vk = ecdsa.VerifyingKey.from_string(
-                bytes.fromhex(tx.details.public_key),
-                curve=ecdsa.SECP256k1,
-                hashfunc=hashlib.sha256,  # the default is sha1
-            )
-            result = vk.verify(signature, message)  # True
-
-            return result
-        except (ValueError, TypeError) as e:
-            logger.warning("Failure for tx: %s", tx.dict())
-            logger.exception(e)
-            return False
+        vk = ecdsa.VerifyingKey.from_string(
+            bytes.fromhex(tx.details.public_key),
+            curve=ecdsa.SECP256k1,
+            hashfunc=hashlib.sha256,  # the default is sha1
+        )
+        return vk.verify(signature, message)

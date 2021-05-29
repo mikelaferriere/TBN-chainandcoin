@@ -1,6 +1,7 @@
 # flake8: noqa
 
 import json
+import shutil
 
 import flask_unittest
 from flask.testing import FlaskClient
@@ -9,47 +10,44 @@ from blockchain_node import create_app
 from tests.const import TRANSACTION, TRANSACTION_HASH
 
 
-class TestBase(flask_unittest.ClientTestCase):
+class TestBase(flask_unittest.AppClientTestCase):
     maxDiff = None
-    pass
+
+    def create_app(self):
+        """Create and configure a new app instance for each test."""
+        app = create_app(test=True)
+
+        # create the database and load test data
+        with app.app_context():
+
+            # Yield the app
+            """
+            This can be outside the `with` block too, but we need to
+            call `close_db` before exiting current context
+            Otherwise windows will have trouble removing the temp file
+            that doesn't happen on unices though, which is nice
+            """
+            yield app
+
+        ## Cleanup temp file
+        try:
+            shutil.rmtree(f"{tempfile.tempdir}/blockchain")
+        except Exception:
+            pass
 
 
 class TestNodeChain(TestBase):
-    app = create_app(test=True)
-
-    def setUp(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def tearDown(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def test_chain_response(self, client):
+    def test_chain_response(self, _, client):
         rv = client.get("/chain")
         self.assertStatus(rv, 200)
 
 
 class TestNodeNodes(TestBase):
-    app = create_app(test=True)
-
-    def setUp(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def tearDown(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def test_nodes_response(self, client):
+    def test_nodes_response(self, _, client):
         rv = client.get("/nodes")
         self.assertStatus(rv, 201)
 
-    def test_nodes_register(self, client):
+    def test_nodes_register(self, _, client):
         rv = client.post("/nodes/register", json={"nodes": ["https://google.com"]})
         self.assertStatus(rv, 201)
         self.assertJsonEqual(
@@ -62,26 +60,14 @@ class TestNodeNodes(TestBase):
 
 
 class TestNodeMining(TestBase):
-    app = create_app(test=True)
-
-    def setUp(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def tearDown(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def test_mining_missing_address(self, client):
+    def test_mining_missing_address(self, _, client):
         rv = client.post("/mine")
         self.assertStatus(rv, 400)
 
         rv = client.post("/mine", json={})
         self.assertStatus(rv, 400)
 
-    def test_mining_success(self, client):
+    def test_mining_success(self, _, client):
         rv = client.post(
             "/mine", json={"miner_address": TRANSACTION["details"]["sender"]}
         )
@@ -89,31 +75,18 @@ class TestNodeMining(TestBase):
 
 
 class TestNodeTransaction(TestBase):
-    app = create_app(test=True)
-
-    def setUp(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def tearDown(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def test_new_transaction_missing_data(self, client):
+    def test_new_transaction_missing_data(self, _, client):
         rv = client.post("/transactions/new")
         self.assertStatus(rv, 400)
 
         rv = client.post("/transactions/new", json={})
         self.assertStatus(rv, 400)
 
-    def test_new_transaction_success(self, client):
+    def test_new_transaction_success(self, _, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post("/transactions/new", json={"transaction": TRANSACTION})
-        self.assertStatus(rv, 201)
 
-    def test_pending_transaction(self, client):
+    def test_pending_transaction(self, _, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post("/transactions/new", json={"transaction": TRANSACTION})
         self.assertStatus(rv, 201)
@@ -123,7 +96,7 @@ class TestNodeTransaction(TestBase):
             rv, ["3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee"]
         )
 
-    def test_by_transaction_hash(self, client):
+    def test_by_transaction_hash(self, _, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         client.post("/transactions/new", json={"transaction": TRANSACTION})
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
@@ -142,7 +115,7 @@ class TestNodeTransaction(TestBase):
             ),
         )
 
-    def test_broadcast_transaction_happy_path(self, client):
+    def test_broadcast_transaction_happy_path(self, _, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post(
             "/broadcast-transaction", json={"transaction": TRANSACTION_HASH}
@@ -159,19 +132,7 @@ class TestNodeTransaction(TestBase):
 
 
 class TestNodeBlock(TestBase):
-    app = create_app(test=True)
-
-    def setUp(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def tearDown(self, client: FlaskClient):
-        # Make sure client is passed in correctly and has correct type
-        self.assertTrue(client is not None)
-        self.assertTrue(isinstance(client, FlaskClient))
-
-    def test_block_by_hash(self, client):
+    def test_block_by_hash(self, _, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         client.post("/transactions/new", json={"transaction": TRANSACTION})
         rv = client.post(
@@ -183,10 +144,8 @@ class TestNodeBlock(TestBase):
         self.assertJsonEqual(rv, block)
 
 
-class TestNodeBroadcastBlock(flask_unittest.ClientTestCase):
-    app = create_app(test=True)
-
-    def test_happy_path(self, client):
+class TestNodeBroadcastBlock(TestBase):
+    def test_happy_path(self, _, client):
         rv = client.post(
             "/broadcast-block",
             json={
@@ -197,10 +156,8 @@ class TestNodeBroadcastBlock(flask_unittest.ClientTestCase):
         self.assertJsonEqual(rv, {"message": "Block added"})
 
 
-class TestNodeBroadcastBlockFailures(flask_unittest.ClientTestCase):
-    app = create_app(test=True)
-
-    def test_lower_index(self, client):
+class TestNodeBroadcastBlockFailures(TestBase):
+    def test_lower_index(self, _, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post(
             "/broadcast-block",
@@ -213,7 +170,7 @@ class TestNodeBroadcastBlockFailures(flask_unittest.ClientTestCase):
             rv, {"message": "Blockchain seems to be shorter, block not added"}
         )
 
-    def test_incoming_index_too_high(self, client):
+    def test_incoming_index_too_high(self, _, client):
         rv = client.post(
             "/broadcast-block",
             json={
@@ -226,7 +183,8 @@ class TestNodeBroadcastBlockFailures(flask_unittest.ClientTestCase):
         )
         self.assertStatus(rv, 500)
 
-    def test_previous_hash_mismatch(self, client):
+    def test_previous_hash_mismatch(self, _, client):
+        client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post(
             "/broadcast-block",
