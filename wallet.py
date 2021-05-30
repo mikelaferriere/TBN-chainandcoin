@@ -11,7 +11,7 @@ import tempfile
 
 from uuid import uuid4
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from Crypto.Hash import keccak
 from Crypto.Cipher import AES
@@ -21,6 +21,7 @@ from Crypto.Random import get_random_bytes
 
 import ecdsa
 
+from custom_exceptions import InvalidNonceError
 from storage import Storage
 from transaction import Details, SignedRawTransaction
 
@@ -215,6 +216,15 @@ class Wallet:
         else:
             logger.error("Saving address failed...")
 
+    def get_nonce(self) -> int:
+        nonce = self.storage.read_string(Path(".nonce"))
+        if nonce is None:
+            return 0
+        return int(nonce)
+
+    def save_new_nonce(self, nonce: int) -> None:
+        self.storage.save(Path(".nonce"), nonce + 1)
+
     def sign_transaction(self, details: Details) -> SignedRawTransaction:
         """
         Sign a transaction and return the signature
@@ -230,17 +240,66 @@ class Wallet:
         d = details.SerializeToString()
         signature = self.private_key.sign(d)
 
+        expected_nonce = self.get_nonce()
+        if details.nonce != expected_nonce:
+            raise InvalidNonceError(
+                details.sender,
+                details.nonce,
+                expected_nonce,
+                "The transaction nonce must match the stored nonce before signing the transaction",
+            )
+
+        self.save_new_nonce(expected_nonce)
         logger.debug("Transaction signed successfully")
         return SignedRawTransaction(details=details, signature=signature.hex())
 
     @staticmethod
-    def verify_transaction(tx: SignedRawTransaction) -> bool:
+    def verify_transaction(
+        tx: SignedRawTransaction,
+        get_last_tx_nonce: Callable,
+        exclude_from_open: bool = False,
+    ) -> bool:
         """
         Verify signature of transaction. A transaction's signature must always be able to be
         verified because the contents of the transaction can never change. Any change in the
         transaction, will be a sign of nefarious actions.
         """
         logger.info("Verifying transaction")
+        logger.info("Verifying nonce")
+
+        sender_last_nonce = get_last_tx_nonce(tx, "confirmed", exclude_from_open)
+        sender_open_nonce = get_last_tx_nonce(tx, "open", exclude_from_open)
+
+        last_nonce = None
+
+        if sender_last_nonce is not None and sender_open_nonce is None:
+            print("Sender has no sent transactions on the chain")
+            last_nonce = sender_last_nonce
+        elif sender_open_nonce is not None and sender_last_nonce is None:
+            print("Sender only has open sent transactions")
+            last_nonce = sender_open_nonce
+        elif (
+            sender_last_nonce is not None
+            and sender_open_nonce is not None
+            and sender_open_nonce == sender_last_nonce + 1
+        ):
+            print(
+                "Sender only has open sent transactions with nonce %s",
+                sender_open_nonce,
+            )
+            last_nonce = sender_open_nonce
+
+        if (last_nonce is None and tx.details.nonce != 0) or (
+            last_nonce is not None and tx.details.nonce != int(last_nonce) + 1
+        ):
+            raise InvalidNonceError(
+                tx.details.sender,
+                tx.details.nonce,
+                last_nonce + 1 if last_nonce else None,
+                "The transaction nonce must be exactly 'Expected nonce' for a valid transaction",
+            )
+
+        logger.info("Verifying Signature")
         message = tx.details.SerializeToString()
         signature = bytes.fromhex(tx.signature)
         vk = ecdsa.VerifyingKey.from_string(

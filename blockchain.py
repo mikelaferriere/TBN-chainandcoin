@@ -218,6 +218,32 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             except requests.exceptions.ConnectionError:
                 continue
 
+    def get_last_tx_nonce(
+        self, tx: SignedRawTransaction, type_: str, exclude: bool
+    ) -> Optional[int]:
+        """
+        Get the last sender's transactions
+        """
+
+        all_transactions = FinalTransaction.LoadTransactions(self.data_location, type_)
+        participant = tx.details.sender
+
+        txns = [
+            t.signed_transaction
+            for t in all_transactions
+            if t.signed_transaction.details.sender == participant
+        ]
+        txns.sort(key=lambda t: t.details.nonce, reverse=False)
+
+        # When getting the correct nonce, exclude the current transacation when this is done via
+        # mining, since these have already been verified, so the nonce of tx will always be in
+        # txns
+        if exclude:
+            txns = list(filter(lambda t: t != tx, txns))
+
+        nonces = [t.details.nonce for t in txns]
+        return nonces[0] if nonces else None
+
     # Calculate and return the balance of the user
     def get_balance(self, sender: str = None) -> Optional[float]:
         """
@@ -301,7 +327,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             The index of the Block that will hold this transaction
         """
 
-        if Verification.verify_transaction(transaction, self.get_balance):
+        if Verification.verify_transaction(
+            transaction, self.get_balance, self.get_last_tx_nonce
+        ):
             final_tx = FinalTransaction(
                 transaction_hash=Verification.hash_transaction(transaction),
                 transaction_id=Verification.hash_transaction(transaction),
@@ -396,7 +424,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         # we don't have the reward transaction stored in the pending transactions
         copied_open_transactions = self.get_open_transactions
         for tx in copied_open_transactions:
-            if not Wallet.verify_transaction(tx.signed_transaction):
+            if not Wallet.verify_transaction(
+                tx.signed_transaction, self.get_last_tx_nonce, exclude_from_open=True
+            ):
                 return None
 
         FinalTransaction.SaveTransaction(
@@ -497,13 +527,14 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
 
             if response.ok:
                 length = response.json()["length"]
-                chain_hexs = response.json()["chain"]
+                chain_hashes = response.json()["chain"]
 
                 chain = []
 
-                for b in chain_hexs:
-                    block = Block.ParseFromHex(b)
-                    chain.append(block)
+                for b in chain_hashes:
+                    response = requests.get(f"{node}/block/{b}")
+                    if response.ok:
+                        chain.append(Block.parse_raw(response.json()))
 
                 if (
                     length == 1

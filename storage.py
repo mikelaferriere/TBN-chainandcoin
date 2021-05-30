@@ -66,7 +66,7 @@ class Storage:
             logger.exception(e)
         return False
 
-    def save(self, suffix: Path, content: Union[bytes, str, dict]) -> bool:
+    def save(self, suffix: Path, content: Union[bytes, str, int, dict]) -> bool:
         self.base_path.mkdir(parents=True, exist_ok=True)
         full_path = self.base_path / suffix
 

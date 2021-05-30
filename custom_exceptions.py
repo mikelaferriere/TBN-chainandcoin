@@ -41,7 +41,7 @@ class InvalidNonceError(Exception):
         sender: str,
         nonce: int,
         expected_nonce: int,
-        message="The transaction nonce must match the stored nonce before signing the transaction",
+        message="invalid nonce in transaction",
     ) -> None:
         self.sender = sender
         self.nonce = nonce

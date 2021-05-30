@@ -170,7 +170,7 @@ class FinalTransaction(BaseModel):
         if type_ not in accepted_types:
             raise ValueError(f"{type_} is not a supported transaction type")
 
-        folder_name = f"{type}_transactions"
+        folder_name = f"{type_}_transactions"
         storage = Storage(Path(data_location))
         tx_files = storage.list_files(Path(folder_name))
         logger.debug("Found transactions: %s", tx_files)
@@ -195,13 +195,9 @@ class FinalTransaction(BaseModel):
     @staticmethod
     def LoadAllTransactions(data_location: str) -> List[FinalTransaction]:
         all_txs = []
-        open_tx = FinalTransaction.LoadTransactions(data_location, "open")
-        confirmed_tx = FinalTransaction.LoadTransactions(data_location, "confirmed")
-        mining_tx = FinalTransaction.LoadTransactions(data_location, "mining")
-
-        all_txs.extend(open_tx)
-        all_txs.extend(confirmed_tx)
-        all_txs.extend(mining_tx)
+        for type_ in ["open", "confirmed", "mining"]:
+            for tx in FinalTransaction.LoadTransactions(data_location, type_):
+                all_txs.append(tx)
         return all_txs
 
     @staticmethod
@@ -209,28 +205,14 @@ class FinalTransaction(BaseModel):
         data_location: str, transaction_hash: str
     ) -> Optional[FinalTransaction]:
         storage = Storage(Path(data_location))
-        open_tx = storage.read_string(Path("open_transactions") / transaction_hash)
-        confirmed_tx = storage.read_string(
-            Path("confirmed_transactions") / transaction_hash
-        )
-        mining_tx = storage.read_string(Path("mining_transactions") / transaction_hash)
-        if open_tx is not None:
+        for type_ in ["open", "confirmed", "mining"]:
+            tx = storage.read_string(Path(f"{type_}_transactions") / transaction_hash)
+            if tx is None:
+                continue
             return FinalTransaction(
                 transaction_hash=transaction_hash,
                 transaction_id=transaction_hash,
-                signed_transaction=SignedRawTransaction.ParseFromHex(open_tx),
-            )
-        if confirmed_tx is not None:
-            return FinalTransaction(
-                transaction_hash=transaction_hash,
-                transaction_id=transaction_hash,
-                signed_transaction=SignedRawTransaction.ParseFromHex(confirmed_tx),
-            )
-        if mining_tx is not None:
-            return FinalTransaction(
-                transaction_hash=transaction_hash,
-                transaction_id=transaction_hash,
-                signed_transaction=SignedRawTransaction.ParseFromHex(mining_tx),
+                signed_transaction=SignedRawTransaction.ParseFromHex(tx),
             )
         return None
 

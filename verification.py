@@ -5,7 +5,7 @@ from typing import Callable, List
 
 from block import Block, Header
 
-from transaction import FinalTransaction, SignedRawTransaction
+from transaction import SignedRawTransaction
 from wallet import Wallet
 
 logger = logging.getLogger(__name__)
@@ -122,6 +122,7 @@ class Verification:
     def verify_transaction(
         transaction: SignedRawTransaction,
         get_balance: Callable,
+        get_last_tx_nonce: Callable,
         check_funds: bool = True,
     ) -> bool:
         """
@@ -141,16 +142,5 @@ class Verification:
             sender_balance = get_balance(transaction.details.sender)
             if sender_balance >= transaction.details.amount:
                 logger.info("Sender has enough coin to create this transaction")
-        return Wallet.verify_transaction(transaction)
 
-    @classmethod
-    def verify_transactions(
-        cls, open_transactions: List[FinalTransaction], get_balance: Callable
-    ):
-        """
-        Verifies all open & unprocessed transactions without checking sender's balance
-        """
-        return all(
-            cls.verify_transaction(tx.signed_transaction, get_balance, False)
-            for tx in open_transactions
-        )
+        return Wallet.verify_transaction(transaction, get_last_tx_nonce)

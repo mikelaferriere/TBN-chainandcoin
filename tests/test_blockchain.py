@@ -28,7 +28,7 @@ def test_mining_block_with_open_transactions():
     w1 = Wallet(test=True)
     w2 = Wallet(test=True)
 
-    chain = Blockchain(w1.address, node_id, is_test=True)
+    chain = Blockchain(w1.address, node_id, difficulty=1, is_test=True)
 
     tx_details_1 = Details(
         sender=w1.address,
@@ -77,13 +77,13 @@ def test_broadcasting_block():
     w1 = Wallet(test=True)
     w2 = Wallet(test=True)
 
-    chain1 = Blockchain(w1.address, node_id, is_test=True)
-    chain2 = Blockchain(w2.address, node_id, is_test=True)
+    chain1 = Blockchain(w1.address, node_id, difficulty=1, is_test=True)
+    chain2 = Blockchain(w2.address, node_id, difficulty=1, is_test=True)
 
     chain2.chain = chain1.chain
     assert chain1.chain == chain2.chain
 
-    tx_details_1 = Details(
+    details = Details(
         sender=w1.address,
         recipient=w2.address,
         nonce=0,
@@ -91,7 +91,7 @@ def test_broadcasting_block():
         timestamp=timestamp,
         public_key=w1.public_key.hex(),
     )
-    transaction_1 = w1.sign_transaction(tx_details_1)
+    transaction_1 = w1.sign_transaction(details)
 
     assert Verification.verify_chain(chain1.chain)
     b = chain1.mine_block()
@@ -103,7 +103,6 @@ def test_broadcasting_block():
     assert Verification.verify_chain(chain2.chain)
 
     chain1.add_transaction(transaction_1, is_receiving=True)
-    chain2.add_transaction(transaction_1, is_receiving=True)
     chain1.mine_block()
     chain2.add_block(chain1.last_block)
 
@@ -118,7 +117,7 @@ def test_not_enough_coin():
     node_id = uuid4()
     w = Wallet(test=True)
     w2 = Wallet(test=True)
-    chain = Blockchain(w.address, node_id, is_test=True)
+    chain = Blockchain(w.address, node_id, difficulty=1, is_test=True)
     tx_details = Details(
         sender=w.address,
         recipient=w2.address,
