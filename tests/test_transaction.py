@@ -1,8 +1,16 @@
 from datetime import datetime
 import ecdsa
 
+from typing import Optional
+
 from transaction import Details, SignedRawTransaction
 from wallet import Wallet
+
+
+def return_test_nonce(
+    tx: SignedRawTransaction, type_: str, exclude: bool
+) -> Optional[int]:
+    return 0
 
 
 def test_transaction_to_protobuf_and_back():
@@ -53,7 +61,8 @@ def test_transaction_with_signature_to_protobuf_and_back():
     parsed_t = SignedRawTransaction.ParseFromHex(t_hex)
 
     assert parsed_t == t
-    assert w.verify_transaction(t)
+
+    assert w.verify_transaction(t, return_test_nonce)
 
 
 def test_transaction_fails_validation():
@@ -78,11 +87,11 @@ def test_transaction_fails_validation():
     parsed_t = SignedRawTransaction.ParseFromHex(t_hex)
 
     assert parsed_t == t
-    assert w.verify_transaction(t)
+    assert w.verify_transaction(t, return_test_nonce)
 
     t.details.amount = 2.5
     try:
-        w.verify_transaction(t)
+        assert w.verify_transaction(t, return_test_nonce)
         raise Exception("Expected to fail but did not")
     except ecdsa.keys.BadSignatureError:
         assert True
