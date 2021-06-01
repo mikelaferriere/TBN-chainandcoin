@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 from pathlib import Path
 from pydantic import BaseModel
 
@@ -203,13 +203,13 @@ class FinalTransaction(BaseModel):
     @staticmethod
     def FindTransaction(
         data_location: str, transaction_hash: str
-    ) -> Optional[FinalTransaction]:
+    ) -> Optional[Tuple[str, FinalTransaction]]:
         storage = Storage(Path(data_location))
         for type_ in ["open", "confirmed", "mining"]:
             tx = storage.read_string(Path(f"{type_}_transactions") / transaction_hash)
             if tx is None:
                 continue
-            return FinalTransaction(
+            return type_, FinalTransaction(
                 transaction_hash=transaction_hash,
                 transaction_id=transaction_hash,
                 signed_transaction=SignedRawTransaction.ParseFromHex(tx),
@@ -220,7 +220,7 @@ class FinalTransaction(BaseModel):
     def SaveTransaction(
         data_location: str, transaction: FinalTransaction, type_: str
     ) -> None:
-        accepted_types = ["open", "mining"]
+        accepted_types = ["open", "confirmed", "mining"]
         if type_ not in accepted_types:
             raise ValueError(f"{type_} is not a supported transaction type")
 

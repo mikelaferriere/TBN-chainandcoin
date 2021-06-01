@@ -104,21 +104,19 @@ class TestNodeTransaction(TestBase):
         rv = client.get(
             "/transaction/3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee"
         )
-        self.assertJsonEqual(
-            rv,
-            json.dumps(
-                {
-                    "transaction_hash": "3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee",
-                    "transaction_id": "3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee",
-                    "signed_transaction": TRANSACTION,
-                }
-            ),
-        )
+
+        t = {
+            "transaction_hash": "3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee",
+            "transaction_id": "3e0cf83c951ffcff548e0414581ce562b626265eaa2cae5e154d2a404ce3ddee",
+            "signed_transaction": TRANSACTION,
+        }
+        self.assertJsonEqual(rv, {"transaction": json.dumps(t), "type": "confirmed"})
 
     def test_broadcast_transaction_happy_path(self, _, client):
         client.post("/mine", json={"miner_address": TRANSACTION["details"]["sender"]})
         rv = client.post(
-            "/broadcast-transaction", json={"transaction": TRANSACTION_HASH}
+            "/broadcast-transaction",
+            json={"transaction": TRANSACTION_HASH, "type": "open"},
         )
         self.assertStatus(rv, 201)
         self.assertJsonEqual(
