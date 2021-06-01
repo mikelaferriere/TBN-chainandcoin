@@ -17,9 +17,7 @@ class Storage:
     def __init__(self, base_path: Path) -> None:
         self.base_path = base_path
 
-    def move_file(self, suffix: Path, new_suffix: Path) -> None:
-        old_path = self.base_path / suffix
-        new_path = self.base_path / new_suffix
+    def move_file(self, old_path: Path, new_path: Path) -> None:
         Path(new_path.parent).mkdir(parents=True, exist_ok=True)
         shutil.move(str(old_path.resolve()), str(new_path.resolve()))
 
@@ -29,6 +27,14 @@ class Storage:
         files = [f for f in p if f.is_file()]
         files.sort(key=os.path.getmtime)
         return [os.path.basename(f) for f in files]
+
+    def delete_files(self, suffix: Path) -> None:
+        full_path = self.base_path / suffix
+        logger.debug("Deleting files from %s", full_path)
+        p = full_path.glob("**/*")
+        files = [f for f in p if f.is_file()]
+        for f in files:
+            os.remove(f)
 
     @staticmethod
     def save_bytes(full_path: Path, content: bytes) -> bool:

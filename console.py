@@ -296,7 +296,7 @@ class Window(
                     sender=self.wallet.address,
                     recipient=recipient.text(),
                     amount=float(amount.text()),
-                    nonce=self.wallet.nonce,
+                    nonce=self.wallet.get_nonce(),
                     timestamp=datetime.utcnow(),
                     public_key=self.wallet.public_key.hex(),
                 )

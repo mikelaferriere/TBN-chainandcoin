@@ -5,7 +5,7 @@ import logging
 import getpass
 import os
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -27,30 +27,29 @@ def create_app(
     app = Flask(__name__)
     CORS(app)
 
-    node_id = uuid4()
-
+    ADDRESS = "MASTERNODE"
     IS_MASTERNODE = os.getenv("MASTERNODE") is not None
+    NODE_ID = UUID(os.getenv("NODE_ID", str(uuid4())))
+    WALLET = Wallet()
 
-    w = Wallet()
-
-    # Instantiate the Blockchain
     blockchain = None
 
-    address = "MASTERNODE"
     if not test and not IS_MASTERNODE:
         password = getpass.getpass()
-        result = w.login(password)
+        result = WALLET.login(password)
         if not result:
             raise ValueError("Unable to configure wallet for blockchain integration")
 
-        if not w.address:
+        if not WALLET.address:
             raise ValueError(
                 "Must configure a wallet address in order to interact with the blockchain"
             )
-        address = w.address
+        ADDRESS = WALLET.address
 
     timestamp = None if not test else 0
-    blockchain = Blockchain(address, node_id, is_test=test, timestamp=timestamp)
+
+    logging.info("Initializing blockchain with id: %s", NODE_ID)
+    blockchain = Blockchain(ADDRESS, NODE_ID, is_test=test, timestamp=timestamp)
 
     if not blockchain:
         raise ValueError("Unabled to initialize blockchain")
@@ -60,9 +59,9 @@ def create_app(
         blockchain.register_node("https://sedrik.life/blockchain")
 
         logging.info("Syncing with the network")
-        blockchain.resolve_conflicts()
 
-        logging.info("Synced with the network")
+    blockchain.resolve_conflicts()
+    logging.info("Synced with the network")
 
     #                                                #
     #                 ENDPOINTS                      #
