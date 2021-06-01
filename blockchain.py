@@ -562,28 +562,29 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                 # Ensure that the chain is sorted by index
                 chain.sort(key=lambda x: x.index, reverse=False)
 
-
                 if length <= current_chain_length:
-                    logger.warning("Neighbour's chain failed verified")
-                else:
-                    # Check if the length is longer and the chain is valid
-                    if length > current_chain_length:
-                        logger.debug("Neighbour's chain is longer than ours")
-                        logger.debug("Verifying neighbour's chain")
-                        if Verification.verify_chain(chain):
-                            logger.debug("Neighbour's chain successfully verified")
-                            current_chain_length = length
-                            new_chain = chain
-                            for b in chain:
-                                for tx_hash in b.transactions:
-                                    response = requests.get(f"{node}/transaction/{tx_hash}")
-                                    if response.ok:
-                                        t = FinalTransaction.parse_raw(
-                                            response.json()["transaction"]
-                                        )
-                                        FinalTransaction.SaveTransaction(
-                                            self.data_location, t, response.json()["type"]
-                                        )
+                    logger.warning("Neighbour's chain shorter than our node")
+                    continue
+
+                logger.debug("Neighbour's chain is longer than ours")
+                logger.debug("Verifying neighbour's chain")
+                if not Verification.verify_chain(chain):
+                    logger.warning("Neighbour's chain failed verification")
+                    continue
+
+                logger.debug("Neighbour's chain successfully verified")
+                current_chain_length = length
+                new_chain = chain
+                for b in chain:
+                    for tx_hash in b.transactions:
+                        response = requests.get(f"{node}/transaction/{tx_hash}")
+                        if response.ok:
+                            t = FinalTransaction.parse_raw(
+                                response.json()["transaction"]
+                            )
+                            FinalTransaction.SaveTransaction(
+                                self.data_location, t, response.json()["type"]
+                            )
 
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
