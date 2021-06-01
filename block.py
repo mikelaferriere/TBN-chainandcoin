@@ -172,6 +172,11 @@ class Block(BaseModel):
         return blocks
 
     @staticmethod
+    def DeleteBlocks(data_location) -> None:
+        block_storage = Storage(Path(data_location))
+        block_storage.delete_files(Path("blocks)"))
+
+    @staticmethod
     def FindBlock(data_location: str, block_hash: str) -> Optional[Block]:
         block_storage = Storage(Path(data_location))
         block = block_storage.read_string(Path("blocks") / block_hash)

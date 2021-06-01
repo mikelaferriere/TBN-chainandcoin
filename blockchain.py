@@ -57,7 +57,12 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.difficulty = difficulty
         self.address = address
         self.version = version
-        self.data_location = "data" if not is_test else f"{tempfile.tempdir}/blockchain"
+        self.data_location = (
+            f"data/{node_id}"
+            if not is_test
+            else f"{tempfile.tempdir}/blockchain/{node_id}"
+        )
+
         if is_test:
             try:
                 shutil.rmtree(self.data_location)
@@ -449,7 +454,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         self.add_block_to_chain(block)
 
         # Reset the open list of transactions
-        logger.info("Moving open transaction to confirmed storage")
+        logger.info(
+            "Moving open transaction to confirmed storage at %s", self.data_location
+        )
         FinalTransaction.MoveOpenTransactions(self.data_location)
         self.__open_transactions = []
         self.save_data()
@@ -563,6 +570,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         if new_chain:
             logger.info("Replacing our chain with neighbour's chain")
             self.chain = new_chain
+            Block.DeleteBlocks(self.data_location)
         else:
             logger.info("Keeping this node's chain. Now making sure its saved")
 
