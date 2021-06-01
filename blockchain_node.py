@@ -110,7 +110,8 @@ def create_app(
                     public_key=details["public_key"],
                 ),
                 signature=values["transaction"]["signature"],
-            )
+            ),
+            "open",
         )
 
         response = {"message": f"Transaction will be added to Block {index}"}
@@ -187,16 +188,18 @@ def create_app(
         -----
         Return code : 200
         Response :
-        tx : SignedRawTransaction
+        type : string          -- type of the transaction
+        tx : FinalTransaction  -- transaction
         """
         #
         # Find tx in storage by hash
         #
-        transaction = FinalTransaction.FindTransaction(
+        packed = FinalTransaction.FindTransaction(
             blockchain.data_location, transaction_hash
         )
-        if transaction:
-            return jsonify(transaction.json()), 200
+        if packed:
+            type_, transaction = packed
+            return jsonify({"type": type_, "transaction": transaction.json()}), 200
         return (
             jsonify({"error": f"No transaction found with hash {transaction_hash}"}),
             404,
@@ -332,22 +335,23 @@ def create_app(
         if not values:
             response = {"message": "No data found."}
             return jsonify(response), 400
-        required = ["transaction"]
+        required = ["transaction", "type"]
         if not all(key in values for key in required):
             response = {"message": "Some data is missing."}
             return jsonify(response), 400
         t = SignedRawTransaction.ParseFromHex(values["transaction"])
         try:
-            if t.signature == "coinbase":
-                # This is a mining transaction, so just save it
+            if values["type"] == "mining" or values["type"] == "confirmed":
                 tx = FinalTransaction(
                     transaction_hash=Verification.hash_transaction(t),
                     transaction_id=Verification.hash_transaction(t),
                     signed_transaction=t,
                 )
-                FinalTransaction.SaveTransaction(blockchain.data_location, tx, "mining")
+                FinalTransaction.SaveTransaction(
+                    blockchain.data_location, tx, values["type"]
+                )
                 response = {
-                    "message": "Successfully saved mining transaction.",
+                    "message": f"Successfully saved {values['type']} transaction.",
                     "transaction": values["transaction"],
                 }
                 return jsonify(response), 201

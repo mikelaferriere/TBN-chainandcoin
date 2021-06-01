@@ -302,7 +302,7 @@ class Window(
                 )
                 transaction = self.wallet.sign_transaction(tx_details)
 
-                if self.blockchain.add_transaction(transaction):
+                if self.blockchain.add_transaction(transaction, "open"):
                     logging.info("Added transaction!")
                     clear_transaction()
                 else:

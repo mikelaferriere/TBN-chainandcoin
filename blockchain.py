@@ -181,7 +181,9 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         except Exception as e:
             logger.exception(e)
 
-    def __broadcast_transaction(self, transaction: SignedRawTransaction) -> None:
+    def __broadcast_transaction(
+        self, transaction: SignedRawTransaction, type_: str
+    ) -> None:
         """
         Broadcast the current transaction to all nodes on the network that this node
         is aware of.
@@ -194,7 +196,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                 logging.debug("Broadcasting new transaction %s to %s", transaction, url)
                 response = requests.post(
                     url,
-                    json={"transaction": transaction.SerializeToHex()},
+                    json={"transaction": transaction.SerializeToHex(), "type": type_},
                 )
                 if response.status_code == 400 or response.status_code == 500:
                     logger.error(
@@ -345,7 +347,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
             self.save_data()
 
             if not is_receiving:
-                self.__broadcast_transaction(transaction)
+                self.__broadcast_transaction(transaction, "open")
         else:
             raise ValueError(
                 "The sender does not have enough coin to make this "
@@ -437,7 +439,10 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         FinalTransaction.SaveTransaction(
             self.data_location, reward_transaction, "mining"
         )
-        self.__broadcast_transaction(reward_transaction.signed_transaction)
+        self.__broadcast_transaction(reward_transaction.signed_transaction, "mining")
+
+        for t in copied_open_transactions:
+            self.__broadcast_transaction(t.signed_transaction, "confirmed")
 
         copied_open_transactions.append(reward_transaction)
 
@@ -457,6 +462,7 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
         logger.info(
             "Moving open transaction to confirmed storage at %s", self.data_location
         )
+
         FinalTransaction.MoveOpenTransactions(self.data_location)
         self.__open_transactions = []
         self.save_data()
@@ -541,7 +547,8 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                 for b in chain_hashes:
                     response = requests.get(f"{node}/block/{b}")
                     if response.ok:
-                        chain.append(Block.parse_raw(response.json()))
+                        parsed_block = Block.parse_raw(response.json())
+                        chain.append(parsed_block)
 
                 if (
                     length == 1
@@ -555,16 +562,29 @@ class Blockchain:  # pylint: disable=too-many-instance-attributes
                 # Ensure that the chain is sorted by index
                 chain.sort(key=lambda x: x.index, reverse=False)
 
-                # Check if the length is longer and the chain is valid
-                if length > current_chain_length:
-                    logger.debug("Neighbour's chain is longer than ours")
-                    logger.debug("Verifying neighbour's chain")
-                    if Verification.verify_chain(chain):
-                        logger.debug("Neighbour's chain successfully verified")
-                        current_chain_length = length
-                        new_chain = chain
-                    else:
-                        logger.warning("Neighbour's chain failed verified")
+                if length <= current_chain_length:
+                    logger.warning("Neighbour's chain shorter than our node")
+                    continue
+
+                logger.debug("Neighbour's chain is longer than ours")
+                logger.debug("Verifying neighbour's chain")
+                if not Verification.verify_chain(chain):
+                    logger.warning("Neighbour's chain failed verification")
+                    continue
+
+                logger.debug("Neighbour's chain successfully verified")
+                current_chain_length = length
+                new_chain = chain
+                for b in chain:
+                    for tx_hash in b.transactions:
+                        response = requests.get(f"{node}/transaction/{tx_hash}")
+                        if response.ok:
+                            t = FinalTransaction.parse_raw(
+                                response.json()["transaction"]
+                            )
+                            FinalTransaction.SaveTransaction(
+                                self.data_location, t, response.json()["type"]
+                            )
 
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
