@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {
-  Container
+  Container,
 } from '@material-ui/core';
 
 import './App.css';
@@ -19,9 +19,7 @@ const App: React.FC = (): JSX.Element => {
 
   return (
     <div className="App">
-      <Container
-        maxWidth="xl"
-      >
+      <Container maxWidth="xl">
         <div>Choose your own adventure Coin</div>
         {chain && <Chain {...chain} />}
       </Container>
