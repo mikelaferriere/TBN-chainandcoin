@@ -6,11 +6,11 @@ import {
 
 import './App.css';
 
-import Chain, {TChain} from './Chain';
+import Chain, {TChain} from './components/Chain';
 
 import * as Blockchain from './blockchain';
 
-const App: React.FC = (): JSX.Element => {
+export const App: React.FC = (): JSX.Element => {
   const [chain, setChain] = React.useState<TChain>({chain: [], length: 0})
 
   React.useEffect(() => {
@@ -26,5 +26,3 @@ const App: React.FC = (): JSX.Element => {
     </div>
   );
 }
-
-export default App;

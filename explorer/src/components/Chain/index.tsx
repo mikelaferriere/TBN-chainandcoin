@@ -10,8 +10,8 @@ import {
   TableRow,
 } from '@material-ui/core';
 
-import * as Blockchain from './blockchain';
-import Block, {TBlock} from './Block';
+import * as Blockchain from '../../blockchain';
+import Block, {TBlock} from '../Block';
 
 export interface TChain {
     chain: Array<string>

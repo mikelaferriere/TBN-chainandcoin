@@ -15,8 +15,8 @@ import {
   Typography,
 } from '@material-ui/core';
 
-import * as Blockchain from './blockchain';
-import Transaction, {TTransaction} from './Transaction';
+import * as Blockchain from '../../blockchain';
+import Transaction, {TTransaction} from '../Transaction';
 
 interface THeader {
     version: number
@@ -58,7 +58,7 @@ const Block: React.FC<TBlock> = (
     const [expanded, setExpanded] = React.useState<string |  boolean>(false);
     const [transaction, setTransaction] = React.useState<TTransaction | undefined>()
 
-    const handleChange = (hash: string) => (_event: any, isExpanded: boolean) => {
+    const handleChange = (hash: string) => (_event, isExpanded: boolean) => {
         Blockchain.getTransactionByHash(hash).then(setTransaction)
         setExpanded(isExpanded ? hash : false);
     };
@@ -77,6 +77,9 @@ const Block: React.FC<TBlock> = (
                     <TableRow>
                         <TableCell>{block_hash}</TableCell>
                         <TableCell>{transaction_count}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                        <TableCell colSpan={2}>Transactions</TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell colSpan={2}>

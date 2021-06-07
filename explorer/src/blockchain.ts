@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { TBlock } from './Block';
-import { TChain } from './Chain';
-import { TTransaction } from './Transaction';
+import { TBlock } from './components/Block';
+import { TChain } from './components/Chain';
+import { TTransaction } from './components/Transaction';
 
 
 // Set config defaults when creating the instance
