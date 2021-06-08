@@ -1,16 +1,15 @@
+import pac from './package.json';
 import path from "path";
 import webpack, { Configuration } from "webpack";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
 import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 
-const webpackConfig = (env): Configuration => ({
+const webpackConfig = (env: { production: boolean; development: boolean; }): Configuration => ({
   entry: "./src/index.tsx",
   ...(env.production || !env.development ? {} : { devtool: "eval-source-map" }),
   resolve: {
     extensions: [".ts", ".tsx", ".js"],
-    //TODO waiting on https://github.com/dividab/tsconfig-paths-webpack-plugin/issues/61
-    //@ts-ignore
     plugins: [new TsconfigPathsPlugin()]
   },
   output: {
@@ -42,8 +41,8 @@ const webpackConfig = (env): Configuration => ({
     }),
     new webpack.DefinePlugin({
       "process.env.PRODUCTION": env.production || !env.development,
-      "process.env.NAME": JSON.stringify(require("./package.json").name),
-      "process.env.VERSION": JSON.stringify(require("./package.json").version)
+      "process.env.NAME": JSON.stringify(pac.name),
+      "process.env.VERSION": JSON.stringify(pac.version)
     }),
     new ForkTsCheckerWebpackPlugin({
       eslint: {
