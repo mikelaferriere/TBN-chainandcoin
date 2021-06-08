@@ -1,5 +1,8 @@
 import axios from 'axios';
-import { TBlock, TChain, TTransaction } from './Chain';
+import { TBlock } from './components/Block';
+import { TChain } from './components/Chain';
+import { TTransaction } from './components/Transaction';
+
 
 // Set config defaults when creating the instance
 const instance = axios.create({
@@ -26,10 +29,11 @@ export const getBlockByHash = async (hash: string): Promise<TBlock| undefined> =
     }
 }
 
-export const getTransactionByHash = async (hash: string): Promise<TTransaction| undefined> => {
+export const getTransactionByHash = async (hash: string): Promise<TTransaction | undefined> => {
     try {
         const response = await instance.get('transaction/'+hash);
-        return JSON.parse(response.data);
+        const t = response.data
+        return JSON.parse(t.transaction)
     } catch (error) {
         console.error(error);
         return undefined
